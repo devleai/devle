@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCReactProvider } from "@/trpc/client";
+import Script from 'next/script';
 
 import {
   ClerkProvider,
@@ -50,6 +51,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+  <Script
+      defer
+      data-website-id="6861a1c076156f47b9239101"
+      data-domain="devle.ai"
+      src="https://datafa.st/js/script.js"
+      strategy="afterInteractive"
+    />
+
         <ThemeProvider
         attribute="class"
         defaultTheme="system"
