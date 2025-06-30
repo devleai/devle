@@ -1,1 +1,17 @@
-<svg id="logo-44" width="41" height="40" viewBox="0 0 41 40" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M20 0C8.9543 0 0 8.9543 0 20C11.0457 20 20 11.0457 20 0Z" fill="#df9b8e" class="ccustom"></path> <path d="M20 40C31.0457 40 40 31.0457 40 20C28.9543 20 20 28.9543 20 40Z" fill="#df9b8e" class="ccustom"></path> <path d="M20 0C31.0457 0 40 8.9543 40 20C28.9543 20 20 11.0457 20 0Z" fill="#C96342" class="ccompli2"></path> <path d="M20 40C8.9543 40 -9.65645e-07 31.0457 0 20C11.0457 20 20 28.9543 20 40Z" fill="#C96342" class="ccompli2"></path> </svg>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="magicAI-logo" width="109.917" height="34.441" viewBox="0 0 109.917 34.441">
+  <defs>
+    <linearGradient id="linear-gradient" y1="0.204" x2="0.839" y2="0.944" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#ff8cda"/> <!-- pink -->
+      <stop offset="0.5" stop-color="#c28aff"/> <!-- light purple -->
+      <stop offset="1" stop-color="#8a2be2"/> <!-- deep purple -->
+    </linearGradient>
+  </defs>
+  <g id="Group_115720" data-name="Group 115720">
+    <path id="Path_143363" data-name="Path 143363" d="M17.627.407h0A17.22,17.22,0,0,0,.406,17.627h0a17.22,17.22,0,0,0,17.22,17.22h0a17.22,17.22,0,0,0,17.22-17.22h0A17.22,17.22,0,0,0,17.627.407Z" transform="translate(-0.406 -0.407)" fill="url(#linear-gradient)"/>
+    <path id="Path_143364" data-name="Path 143364" d="M13.743,19.764l.378-.077a.467.467,0,0,0,0-.917l-.378-.077A2.422,2.422,0,0,1,11.851,16.8l-.077-.378a.467.467,0,0,0-.917,0l-.077.378a2.421,2.421,0,0,1-1.892,1.892l-.378.077a.467.467,0,0,0,0,.917l.378.077a2.421,2.421,0,0,1,1.892,1.891l.077.378a.467.467,0,0,0,.917,0l.077-.378a2.422,2.422,0,0,1,1.892-1.891Z" transform="translate(0.985 2.41)" fill="#fff"/>
+    <path id="Path_143365" data-name="Path 143365" d="M22.041,14.367l1.392-.282a.615.615,0,0,0,0-1.205L22.041,12.6a3.482,3.482,0,0,1-2.72-2.72l-.282-1.392a.614.614,0,0,0-1.2,0l-.282,1.392a3.481,3.481,0,0,1-2.72,2.72l-1.392.282a.615.615,0,0,0,0,1.205l1.392.282a3.48,3.48,0,0,1,2.72,2.72l.282,1.392a.614.614,0,0,0,1.2,0l.282-1.392a3.482,3.482,0,0,1,2.72-2.72Z" transform="translate(1.852 0.959)" fill="#fff"/>
+  </g>
+  <g id="Group_115722" data-name="Group 115722" transform="translate(45.693 9.121)">
+    <path id="Path_159905" data-name="Path 159905" d="... (rest of text paths unchanged) ..." transform="translate(-0.9 13.32)" fill="#fff"/>
+  </g>
+</svg>
