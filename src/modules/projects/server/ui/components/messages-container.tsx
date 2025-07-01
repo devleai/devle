@@ -6,6 +6,7 @@ import { Fragment } from "@/generated/prisma"
 import { use, useEffect, useRef } from "react";
 import { MessageLoading } from "./message-loading";
 
+
 interface Props {
     projectId: string;
     activeFragment: Fragment | null;
