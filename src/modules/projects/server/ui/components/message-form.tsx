@@ -83,6 +83,8 @@ export const MessageForm = ({ projectId }: Props) => {
             )
 
             }
+
+
             <form 
             onSubmit={form.handleSubmit(onSubmit)}
             className={cn(

@@ -15,6 +15,7 @@ import {
   BoltIcon,
   StarIcon
 } from "@heroicons/react/24/outline";
+import { CommunityProjects } from "@/modules/home/ui/components/CommunityProjects";
 
 const fadeInUp = {
   initial: { opacity: 0, y: 60 },
@@ -135,6 +136,7 @@ const PricingCard = ({ plan, index }: { plan: typeof PRICING_PLANS[0]; index: nu
   const { user } = useUser();
 
   return (
+  
     <motion.div
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
@@ -198,6 +200,7 @@ const PricingCard = ({ plan, index }: { plan: typeof PRICING_PLANS[0]; index: nu
 
 const Page = () => {
   return (
+
     <div className="flex flex-col max-w-7xl mx-auto w-full">
       {/* Hero Section */}
       <section className="space-y-8 py-[12vh] 2xl:py-32 px-4">
@@ -250,6 +253,7 @@ const Page = () => {
           </motion.div>
         </motion.div>
       </section>
+<div className="bg-background rounded-[1rem] border border-[#201E1C14]">
 
       {/* Features Section */}
       <motion.section 
@@ -303,6 +307,8 @@ const Page = () => {
           ))}
         </div>
       </motion.section>
+
+      <CommunityProjects />
 
       {/* Projects Section */}
       <motion.section
@@ -389,6 +395,8 @@ const Page = () => {
         </div>
       </motion.section>
     </div>
+          </div>
+
   );
 };
 

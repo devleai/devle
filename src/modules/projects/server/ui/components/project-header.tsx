@@ -21,6 +21,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import { ProjectVisibilityDropdown } from "@/components/ProjectVisibilityDropdown";
+import { useUser } from "@clerk/nextjs";
+import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useAuth } from "@clerk/nextjs";
+import { GlobeIcon, LockIcon } from "lucide-react";
+
 interface Props {
     projectId: string;
 }
@@ -32,6 +39,14 @@ export const ProjectHeader = ({ projectId }: Props) => {
     );
 
     const { setTheme, theme } = useTheme();
+
+    const normalizeVisibility = (v: string): 'public' | 'private' => v === 'workspace' ? 'private' : (v as 'public' | 'private');
+    const { has } = useAuth();
+    const isPro = has?.({ plan: "pro" });
+    const [visibility, setVisibility] = useState<'public' | 'private'>(isPro ? 'private' : normalizeVisibility(project.visibility));
+    const updateVisibility = useMutation(trpc.projects.updateVisibility.mutationOptions({
+      onSuccess: () => { /* show toast or refetch */ }
+    }));
 
     return (
     <header className="p-2 flex justify-between items-center border-b">
@@ -71,6 +86,30 @@ export const ProjectHeader = ({ projectId }: Props) => {
                                 </DropdownMenuRadioItem>
                                 <DropdownMenuRadioItem value="system"> 
                                     <span>System</span>
+                                </DropdownMenuRadioItem>
+                            </DropdownMenuRadioGroup>
+                        </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="gap-2">
+                        {visibility === 'public' ? <GlobeIcon className="size-4 text-muted-foreground" /> : <LockIcon className="size-4 text-muted-foreground" />}
+                        <span>Project Visibility</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                        <DropdownMenuSubContent>
+                            <DropdownMenuRadioGroup value={visibility} onValueChange={v => {
+                                setVisibility(v as 'public' | 'private');
+                                updateVisibility.mutate({ projectId: project.id, visibility: v as 'public' | 'private' });
+                            }}>
+                                <DropdownMenuRadioItem value="public">
+                                    <GlobeIcon className="w-4 h-4 mr-2" />
+                                    <span>Public</span>
+                                </DropdownMenuRadioItem>
+                                <DropdownMenuRadioItem value="private" disabled={!isPro}>
+                                    <LockIcon className="w-4 h-4 mr-2" />
+                                    <span>Private</span>
+                                    {!isPro && <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Pro</span>}
                                 </DropdownMenuRadioItem>
                             </DropdownMenuRadioGroup>
                         </DropdownMenuSubContent>

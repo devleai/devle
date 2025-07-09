@@ -18,9 +18,13 @@ export const codeAgentFunction = inngest.createFunction(
   { id: "code-agent" },
   { event: "code-agent/run" },
   async ({ event, step }) => {
+    const project = await prisma.project.findUnique({ where: { id: event.data.projectId } });
+    const isPro = event.data.userPlan === 'pro';
+    const isPrivate = project?.visibility === 'private';
+    const timeoutMs = isPro && isPrivate ? 60_000 * 30 : 60_000 * 60 * 3;
     const sandboxId = await step.run("get-sandbox-id", async () => {
       const sandbox = await Sandbox.create("devle-ai-project-2");
-      await sandbox.setTimeout(60_000 * 10 * 3)
+      await sandbox.setTimeout(timeoutMs);
       return sandbox.sandboxId;
     });
 

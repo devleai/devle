@@ -1,10 +1,11 @@
-import { protectedProcedure, createTRPCRouter } from '@/trpc/init';
+import { protectedProcedure, createTRPCRouter, baseProcedure } from '@/trpc/init';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { inngest } from '@/inngest/client';
 import { generateSlug } from "random-word-slugs";
 import { TRPCError } from '@trpc/server';
 import { consumeCredits } from '@/lib/usage';
+import { subHours } from 'date-fns';
 
 export const projectsRouter = createTRPCRouter({
     
@@ -49,10 +50,10 @@ export const projectsRouter = createTRPCRouter({
         z.object({
             value: z.string()
             .min(1, { message: 'Prompt cannot be empty' })
-            .max(10000, { message: 'Prompt is too long' })
+            .max(10000, { message: 'Prompt is too long' }),
+            visibility: z.enum(["public", "private"]).default("public"),
         }),
     )
-
     .mutation(async ({ input, ctx }) => {
 
                 try {
@@ -74,7 +75,7 @@ export const projectsRouter = createTRPCRouter({
                 name: generateSlug(2, {
                     format: "kebab",
                 }),
-
+                visibility: input.visibility,
                 messages: {
                     create: {
                             content: input.value,
@@ -94,6 +95,42 @@ export const projectsRouter = createTRPCRouter({
               },
             });
             return createdProject;
+    }),
+
+updateVisibility: protectedProcedure
+    .input(z.object({
+        projectId: z.string(),
+        visibility: z.enum(["public", "private"])
+    }))
+    .mutation(async ({ input, ctx }) => {
+        await prisma.project.update({
+            where: { id: input.projectId, userId: ctx.auth.userId },
+            data: { visibility: input.visibility }
+        });
+        return true;
+    }),
+
+    getCommunityFragments: baseProcedure.query(async () => {
+        const threeHoursAgo = subHours(new Date(), 3);
+        const fragments = await prisma.fragment.findMany({
+            where: {
+                sandboxUrl: { not: undefined },
+                title: { not: "" },
+                createdAt: { gte: threeHoursAgo },
+                message: {
+                    project: { visibility: "public" }
+                }
+            },
+            orderBy: { createdAt: "desc" },
+            take: 6,
+            select: {
+                id: true,
+                sandboxUrl: true,
+                title: true,
+                createdAt: true,
+            },
+        });
+        return fragments;
     }),
 
 });

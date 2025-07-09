@@ -20,6 +20,8 @@ import { useRouter } from "next/navigation";
 
 import { PROJECT_TEMPLATES } from "../../constants";
 import { useClerk } from "@clerk/nextjs";
+import { ProjectVisibilityDropdown } from "@/components/ProjectVisibilityDropdown";
+import { useAuth } from "@clerk/nextjs";
 
 const formSchema = z.object({
     value: z.string()
@@ -72,7 +74,7 @@ export const ProjectForm = () => {
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         await createProject.mutateAsync({
             value: values.value,
-            
+            visibility,
         });
     };
 
@@ -86,6 +88,9 @@ export const ProjectForm = () => {
 
 
         const [isFocused, setIsFocused] = useState(false);
+        const { has } = useAuth();
+        const isPro = has?.({ plan: "pro" });
+        const [visibility, setVisibility] = useState<'public' | 'private'>(isPro ? 'private' : 'public');
 
     const isPending = createProject.isPending;
     const isButtonDisabled = isPending || !form.formState.isValid;
@@ -123,12 +128,10 @@ export const ProjectForm = () => {
                 />
             )}
             />
+            
             <div className="flex gap-x-2 items-end justify-between pt-2">
                 <div className="text-[10px] text-muted-foreground font-mono">
-                    <kbd className="ml-auto pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-                        <span>&#8984;</span>Enter
-                    </kbd>
-                    &nbsp;to submit
+                      <ProjectVisibilityDropdown value={visibility} onChange={setVisibility} />
                 </div>
                 <Button
                 disabled={isButtonDisabled}
