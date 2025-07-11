@@ -18,6 +18,7 @@ export const CommunityProjects = () => {
   const trpc = useTRPC();
   const { data: fragments, isLoading } = useQuery(trpc.projects.getCommunityFragments.queryOptions());
   const [liveFragments, setLiveFragments] = useState<Fragment[]>([]);
+  const [screenshotUrls, setScreenshotUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!Array.isArray(fragments) || fragments.length === 0) return;
@@ -28,7 +29,15 @@ export const CommunityProjects = () => {
           try {
             const res = await fetch(`/api/sandbox-alive?url=${encodeURIComponent(frag.sandboxUrl)}`);
             const { alive } = await res.json();
-            return alive ? { ...frag, createdAt: new Date(frag.createdAt).toISOString() } : null;
+            if (!alive) return null;
+            // Fetch screenshot URL from API
+            const screenshotRes = await fetch(`/api/screenshot?url=${frag.sandboxUrl}`);
+            const screenshotData = await screenshotRes.json();
+            console.log('Screenshot API', frag.sandboxUrl, screenshotData); // DEBUG
+            if (!cancelled && screenshotData.imageUrl) {
+              setScreenshotUrls(prev => ({ ...prev, [frag.id]: screenshotData.imageUrl }));
+            }
+            return { ...frag, createdAt: new Date(frag.createdAt).toISOString() };
           } catch {
             return null;
           }
@@ -54,18 +63,12 @@ export const CommunityProjects = () => {
               className="w-full aspect-[16/10] bg-muted rounded-lg overflow-hidden flex"
               style={{ minWidth: "320px", maxWidth: "100%" }}
             >
-              <iframe
-                src={frag.sandboxUrl}
-                className="w-full h-full"
-                sandbox="allow-forms allow-scripts allow-same-origin"
+              <img
+                src={screenshotUrls[frag.id] || "/placeholder.png"}
+                alt={frag.title}
+                className="w-full h-full object-cover"
+                style={{ display: "block", background: "white", border: "none" }}
                 loading="lazy"
-                title={frag.title}
-                scrolling="no"
-                style={{
-                  border: "none",
-                  background: "white",
-                  display: "block",
-                }}
               />
             </div>
           </div>

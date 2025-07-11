@@ -111,12 +111,10 @@ updateVisibility: protectedProcedure
     }),
 
     getCommunityFragments: baseProcedure.query(async () => {
-        const threeHoursAgo = subHours(new Date(), 3);
         const fragments = await prisma.fragment.findMany({
             where: {
                 sandboxUrl: { not: undefined },
                 title: { not: "" },
-                createdAt: { gte: threeHoursAgo },
                 message: {
                     project: { visibility: "public" }
                 }

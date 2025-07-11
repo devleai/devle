@@ -69,3 +69,10 @@ model Usage {
   points Int
   expire DateTime?
 }
+
+model Screenshot {
+  id         String   @id @default(uuid())
+  sandboxUrl String   @unique
+  imageUrl   String
+  createdAt  DateTime @default(now())
+}
