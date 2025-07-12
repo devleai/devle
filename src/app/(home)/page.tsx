@@ -32,7 +32,7 @@ const Page = () => {
       />
       {/* Content */}
       <div
-        className="flex flex-col max-w-5xl mx-auto w-full"
+        className="flex flex-col max-w-5xl mx-auto w-full px-4"
         style={{ position: "relative", zIndex: 2 }}
       >
         <section className="space-y-6 py-[16vh] 2xl:py-48">

@@ -6,9 +6,11 @@ import { dark } from "@clerk/themes"
 
 interface Props {
   showName?: boolean;
+  isScrolled?: boolean;
+  isHomepage?: boolean;
 }
 
-export const UserControl = ({ showName }: Props) => {
+export const UserControl = ({ showName, isScrolled, isHomepage }: Props) => {
 
     const currentTheme = useCurrentTheme();
   return (
@@ -19,6 +21,7 @@ export const UserControl = ({ showName }: Props) => {
           userButtonBox: "rounded-md!",
           userButtonAvatarBox: "rounded-md size-8!",
           userButtonTrigger: "rounded-md!",
+          userButtonOuterIdentifier: isScrolled === false && isHomepage ? "text-white!" : "",
         },
         baseTheme: currentTheme === "dark" ? dark : undefined,
       }}
