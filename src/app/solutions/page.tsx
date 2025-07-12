@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { prisma } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "AI Solutions - Devle",
@@ -31,60 +30,17 @@ export const metadata: Metadata = {
 };
 
 async function getPublicProjects() {
-  const projects = await prisma.project.findMany({
-    where: {
-      visibility: "public",
-      slug: { not: null },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 100, // Get more to filter
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      createdAt: true,
-      messages: {
-        take: 1,
-        orderBy: { createdAt: "desc" },
-        select: {
-          content: true,
-          fragment: {
-            select: {
-              title: true,
-            },
-          },
-        },
-      },
-    },
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const response = await fetch(`${baseUrl}/api/solutions`, {
+    cache: 'no-store'
   });
-
-  console.log('Found projects:', projects.length);
-  console.log('Projects with slugs:', projects.map(p => ({ slug: p.slug, title: p.messages[0]?.fragment?.title || p.name })));
-
-  // Filter out duplicates based on title similarity
-  const uniqueProjects = [];
-  const seenTitles = new Set();
-
-  for (const project of projects) {
-    const title = project.messages[0]?.fragment?.title || project.name;
-    const normalizedTitle = title.toLowerCase().trim();
-    
-    // Check if we've seen this title before
-    if (seenTitles.has(normalizedTitle)) {
-      console.log('Skipping duplicate title:', normalizedTitle);
-      continue; // Skip duplicate titles
-    }
-
-    uniqueProjects.push(project);
-    seenTitles.add(normalizedTitle);
+  
+  if (!response.ok) {
+    throw new Error('Failed to fetch solutions');
   }
-
-  console.log('Unique projects after filtering:', uniqueProjects.length);
-  console.log('Final projects:', uniqueProjects.map(p => ({ slug: p.slug, title: p.messages[0]?.fragment?.title || p.name })));
-
-  return uniqueProjects.slice(0, 50); // Return top 50 unique projects
+  
+  const projects = await response.json();
+  return projects;
 }
 
 export default async function SolutionsPage() {
@@ -99,7 +55,7 @@ export default async function SolutionsPage() {
         </p>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
+          {projects.map((project: any) => (
             <Link
               key={project.id}
               href={`/solutions/${project.slug}`}
