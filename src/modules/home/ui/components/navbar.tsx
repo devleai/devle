@@ -27,6 +27,7 @@ export const Navbar = () => {
       <p className="flex justify-center text-sm">
         <a href="/pricing" className="group">
           
+
           <span className={cn("me-1 text-base leading-none", !isScrolled && isHomepage && "text-white")}>   <span className="me-1 text-base leading-none ">✨</span>       Beta access: Prices rising soon          </span>
 
                     <ArrowRightIcon

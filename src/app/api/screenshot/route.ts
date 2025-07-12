@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
   formData.append('api_key', CLOUDINARY_API_KEY);
   formData.append('timestamp', timestamp.toString());
   formData.append('signature', signature);
+  formData.append('format', 'png');
 
   const cloudRes = await fetch(CLOUDINARY_UPLOAD_URL, {
     method: 'POST',
