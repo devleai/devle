@@ -23,15 +23,15 @@ export const Navbar = () => {
         )}
         
         >
- <div>
+ <div className="pb-3">
       <p className="flex justify-center text-sm">
         <a href="/pricing" className="group">
           
 
-          <span className={cn("me-1 text-base leading-none", !isScrolled && isHomepage && "text-white")}>   <span className="me-1 text-base leading-none ">✨</span>       Beta access: Prices rising soon          </span>
+          <span className={cn("me-1 text-sm leading-none", !isScrolled && isHomepage ? "text-white" : "")}>   <span className="me-1 text-base leading-none ">✨</span>       Beta access: Prices rising soon          </span>
 
                     <ArrowRightIcon
-            className="ms-2 -mt-0.5 inline-flex opacity-60 transition-transform group-hover:translate-x-0.5"
+            className={cn("ms-2 -mt-0.5 inline-flex opacity-60 transition-transform group-hover:translate-x-0.5", !isScrolled && isHomepage ? "text-white" : "")}
             size={16}
             aria-hidden="true"
           />
