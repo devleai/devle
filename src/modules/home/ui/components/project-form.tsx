@@ -29,7 +29,11 @@ const formSchema = z.object({
         .max(10000, { message: 'Prompt is too long' }),
 })
 
-export const ProjectForm = () => {
+interface ProjectFormProps {
+    defaultPrompt?: string;
+}
+
+export const ProjectForm = ({ defaultPrompt = "" }: ProjectFormProps) => {
 
     const router = useRouter();
 
@@ -42,7 +46,7 @@ export const ProjectForm = () => {
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            value: "",
+            value: defaultPrompt,
         },
     });
 

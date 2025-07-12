@@ -22,6 +22,7 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   visibility String @default("private") // "public" or "private"
+  slug String? // URL-friendly slug for solution pages
   messages Message[]
 }
 

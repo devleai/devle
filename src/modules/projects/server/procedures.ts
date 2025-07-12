@@ -7,6 +7,17 @@ import { TRPCError } from '@trpc/server';
 import { consumeCredits } from '@/lib/usage';
 import { subHours } from 'date-fns';
 
+// Simple similarity calculation using Jaccard similarity
+function calculateSimilarity(text1: string, text2: string): number {
+    const words1 = new Set(text1.toLowerCase().split(/\s+/));
+    const words2 = new Set(text2.toLowerCase().split(/\s+/));
+    
+    const intersection = new Set([...words1].filter(x => words2.has(x)));
+    const union = new Set([...words1, ...words2]);
+    
+    return intersection.size / union.size;
+}
+
 export const projectsRouter = createTRPCRouter({
     
     
@@ -56,6 +67,7 @@ export const projectsRouter = createTRPCRouter({
     )
     .mutation(async ({ input, ctx }) => {
 
+
                 try {
                 await consumeCredits();
         
@@ -94,7 +106,20 @@ export const projectsRouter = createTRPCRouter({
                 projectId: createdProject.id,
               },
             });
-            return createdProject;
+
+        // Trigger solution page generation for public projects
+        if (input.visibility === "public") {
+          console.log('🚀 Sending public project event for:', createdProject.id);
+          await inngest.send({
+            name: "project/public-created",
+            data: {
+              projectId: createdProject.id,
+            },
+          });
+          console.log('✅ Public project event sent');
+        }
+
+        return createdProject;
     }),
 
 updateVisibility: protectedProcedure
@@ -103,10 +128,22 @@ updateVisibility: protectedProcedure
         visibility: z.enum(["public", "private"])
     }))
     .mutation(async ({ input, ctx }) => {
+
         await prisma.project.update({
             where: { id: input.projectId, userId: ctx.auth.userId },
             data: { visibility: input.visibility }
         });
+
+        // Trigger solution page generation if project becomes public
+        if (input.visibility === "public") {
+          await inngest.send({
+            name: "project/public-created",
+            data: {
+              projectId: input.projectId,
+            },
+          });
+        }
+
         return true;
     }),
 

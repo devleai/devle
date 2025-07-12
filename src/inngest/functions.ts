@@ -376,3 +376,72 @@ export const codeAgentFunction = inngest.createFunction(
     };
   }
 );
+
+export const generateSolutionPageFunction = inngest.createFunction(
+  { id: "generate-solution-page" },
+  { event: "project/public-created" },
+  async ({ event, step }) => {
+    console.log('🔍 Inngest function triggered:', event);
+    
+    const project = await step.run("get-project", async () => {
+      console.log('🔍 Looking for project:', event.data.projectId);
+      const foundProject = await prisma.project.findUnique({
+        where: { id: event.data.projectId },
+        select: {
+          id: true,
+          name: true,
+          visibility: true,
+          messages: {
+            take: 1,
+            orderBy: { createdAt: "asc" },
+            select: { content: true },
+          },
+        },
+      });
+      console.log('🔍 Found project:', foundProject);
+      return foundProject;
+    });
+
+    if (!project || project.visibility !== "public") {
+      return { message: "Project not found or not public" };
+    }
+
+    // Generate slug from the first message content
+    const firstMessage = project.messages[0]?.content || "";
+    const slug = await step.run("generate-slug", async () => {
+      // Create a URL-friendly slug from the message content
+      const baseSlug = firstMessage
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .trim()
+        .substring(0, 50);
+
+      // Ensure uniqueness by adding project ID suffix if needed
+      const existingProject = await prisma.project.findFirst({
+        where: { slug: baseSlug },
+      });
+
+      if (existingProject && existingProject.id !== project.id) {
+        return `${baseSlug}-${project.id.substring(0, 8)}`;
+      }
+
+      return baseSlug;
+    });
+
+    // Update project with slug
+    await step.run("update-project-slug", async () => {
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { slug },
+      });
+    });
+
+    return {
+      projectId: project.id,
+      slug,
+      message: `Solution page generated for: ${firstMessage}`,
+    };
+  }
+);
