@@ -16,3 +16,16 @@ export const createScreenshot = async (sandboxUrl: string, imageUrl: string) => 
   return prisma.screenshot.create({ data: { sandboxUrl, imageUrl } });
 };
 
+export const getLatestScreenshots = async (limit: number = 6) => {
+  return prisma.screenshot.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      sandboxUrl: true,
+      imageUrl: true,
+      createdAt: true,
+    },
+  });
+};
+

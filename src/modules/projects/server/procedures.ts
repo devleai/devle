@@ -113,7 +113,7 @@ updateVisibility: protectedProcedure
     getCommunityFragments: baseProcedure.query(async () => {
         const fragments = await prisma.fragment.findMany({
             where: {
-                sandboxUrl: { not: undefined },
+                sandboxUrl: { not: "" },
                 title: { not: "" },
                 message: {
                     project: { visibility: "public" }
@@ -128,7 +128,60 @@ updateVisibility: protectedProcedure
                 createdAt: true,
             },
         });
+        console.log('Found fragments:', fragments);
         return fragments;
+    }),
+
+    getLatestScreenshots: baseProcedure.query(async () => {
+        const { getLatestScreenshots } = await import('@/lib/db');
+        const screenshots = await getLatestScreenshots(6);
+        console.log('Found screenshots:', screenshots);
+        return screenshots;
+    }),
+
+    getLatestScreenshotsWithFragments: baseProcedure.query(async () => {
+        const screenshots = await prisma.screenshot.findMany({
+            orderBy: { createdAt: "desc" },
+            take: 6,
+            select: {
+                id: true,
+                sandboxUrl: true,
+                imageUrl: true,
+                createdAt: true,
+            },
+        });
+
+        // Get fragment information for each screenshot
+        const screenshotsWithFragments = await Promise.all(
+            screenshots.map(async (screenshot) => {
+                const fragment = await prisma.fragment.findFirst({
+                    where: { sandboxUrl: screenshot.sandboxUrl },
+                    select: {
+                        id: true,
+                        title: true,
+                        message: {
+                            select: {
+                                project: {
+                                    select: {
+                                        visibility: true
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                return {
+                    ...screenshot,
+                    fragment: fragment && fragment.message.project.visibility === 'public' ? fragment : null
+                };
+            })
+        );
+
+        // Filter out screenshots without public fragments
+        const publicScreenshots = screenshotsWithFragments.filter(s => s.fragment);
+        console.log('Found public screenshots with fragments:', publicScreenshots);
+        return publicScreenshots;
     }),
 
 });
