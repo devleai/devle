@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/modules/home/ui/components/project-form";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 async function getProjectBySlug(slug: string) {
@@ -44,7 +44,8 @@ async function getProjectBySlug(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const project = await getProjectBySlug(params.slug);
+  const { slug } = await params;
+  const project = await getProjectBySlug(slug);
 
   if (!project) {
     return {
@@ -53,26 +54,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const firstMessage = project.messages[0]?.content || "";
-  const description = `Build ${firstMessage} using AI with Devle. Create apps and websites by chatting with AI.`;
+  const title = project.messages[0]?.fragment?.title || project.name;
+  const description = `Build ${title} using AI with Devle. Create apps and websites by chatting with AI.`;
 
   return {
-    title: `Build ${firstMessage} using AI - Devle`,
+    title: `Build ${title} using AI - Devle`,
     description: description,
     openGraph: {
-      title: `Build a ${firstMessage} using AI - Devle`,
+      title: `Build ${title} using AI - Devle`,
       description: description,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: `Build a ${firstMessage} using AI - Devle`,
+      title: `Build ${title} using AI - Devle`,
       description: description,
     },
   };
 }
 
 export default async function SolutionPage({ params }: Props) {
-  const project = await getProjectBySlug(params.slug);
+  const { slug } = await params;
+  const project = await getProjectBySlug(slug);
 
   if (!project) {
     notFound();
