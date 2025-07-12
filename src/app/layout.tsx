@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { TRPCReactProvider } from "@/trpc/client";
 import Script from 'next/script';
-
+import { Analytics } from "@vercel/analytics/next"
 import {
   ClerkProvider,
   SignInButton,
@@ -51,6 +51,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+                <Analytics />
+
   <Script
       defer
       data-website-id="6861a1c076156f47b9239101"
