@@ -46,11 +46,6 @@ async function getPublicProjects() {
       slug: true,
       createdAt: true,
       messages: {
-        where: {
-          fragment: {
-            isNot: null,
-          },
-        },
         take: 1,
         orderBy: { createdAt: "desc" },
         select: {
@@ -65,6 +60,9 @@ async function getPublicProjects() {
     },
   });
 
+  console.log('Found projects:', projects.length);
+  console.log('Projects with slugs:', projects.map(p => ({ slug: p.slug, title: p.messages[0]?.fragment?.title || p.name })));
+
   // Filter out duplicates based on title similarity
   const uniqueProjects = [];
   const seenTitles = new Set();
@@ -75,12 +73,16 @@ async function getPublicProjects() {
     
     // Check if we've seen this title before
     if (seenTitles.has(normalizedTitle)) {
+      console.log('Skipping duplicate title:', normalizedTitle);
       continue; // Skip duplicate titles
     }
 
     uniqueProjects.push(project);
     seenTitles.add(normalizedTitle);
   }
+
+  console.log('Unique projects after filtering:', uniqueProjects.length);
+  console.log('Final projects:', uniqueProjects.map(p => ({ slug: p.slug, title: p.messages[0]?.fragment?.title || p.name })));
 
   return uniqueProjects.slice(0, 50); // Return top 50 unique projects
 }
