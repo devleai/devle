@@ -381,26 +381,27 @@ export const generateSolutionPageFunction = inngest.createFunction(
   { id: "generate-solution-page" },
   { event: "project/public-created" },
   async ({ event, step }) => {
-    console.log('🔍 Inngest function triggered:', event);
-    
-    const project = await step.run("get-project", async () => {
-      console.log('🔍 Looking for project:', event.data.projectId);
-      const foundProject = await prisma.project.findUnique({
-        where: { id: event.data.projectId },
-        select: {
-          id: true,
-          name: true,
-          visibility: true,
-          messages: {
-            take: 1,
-            orderBy: { createdAt: "asc" },
-            select: { content: true },
+    try {
+      console.log('🔍 Inngest function triggered:', event);
+      
+      const project = await step.run("get-project", async () => {
+        console.log('🔍 Looking for project:', event.data.projectId);
+        const foundProject = await prisma.project.findUnique({
+          where: { id: event.data.projectId },
+          select: {
+            id: true,
+            name: true,
+            visibility: true,
+            messages: {
+              take: 1,
+              orderBy: { createdAt: "asc" },
+              select: { content: true },
+            },
           },
-        },
+        });
+        console.log('🔍 Found project:', foundProject);
+        return foundProject;
       });
-      console.log('🔍 Found project:', foundProject);
-      return foundProject;
-    });
 
     if (!project || project.visibility !== "public") {
       return { message: "Project not found or not public" };
@@ -443,5 +444,9 @@ export const generateSolutionPageFunction = inngest.createFunction(
       slug,
       message: `Solution page generated for: ${firstMessage}`,
     };
+    } catch (error) {
+      console.error('❌ Error in generateSolutionPageFunction:', error);
+      throw error;
+    }
   }
 );
