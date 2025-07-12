@@ -133,9 +133,11 @@ updateVisibility: protectedProcedure
     }),
 
     getLatestScreenshots: baseProcedure.query(async () => {
+        console.log('getLatestScreenshots called');
         const { getLatestScreenshots } = await import('@/lib/db');
         const screenshots = await getLatestScreenshots(6);
         console.log('Found screenshots:', screenshots);
+        console.log('Screenshot count:', screenshots.length);
         return screenshots;
     }),
 

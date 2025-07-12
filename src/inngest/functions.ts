@@ -255,76 +255,6 @@ export const codeAgentFunction = inngest.createFunction(
       return `https://${host}`;
     });
 
-    // Capture screenshot for public projects
-    if (!isError && project?.visibility === 'public') {
-      await step.run("capture-screenshot", async () => {
-        try {
-          console.log('Capturing screenshot for public project:', sandboxUrl);
-          
-          // Check if Cloudinary credentials are available
-          const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
-          const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
-          const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
-
-          if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
-            console.error('Missing Cloudinary credentials for screenshot capture');
-            return;
-          }
-
-          const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-
-          // Fetch thum.io image
-          const thumioUrl = `https://image.thum.io/get/width/1280/crop/720/${sandboxUrl}`;
-          console.log('Fetching from thum.io:', thumioUrl);
-          
-          const thumioRes = await fetch(thumioUrl);
-          if (!thumioRes.ok) {
-            console.error('thum.io failed:', thumioRes.status, thumioRes.statusText);
-            return;
-          }
-          
-          const buffer = await thumioRes.arrayBuffer();
-
-          // Prepare signed upload
-          const timestamp = Math.floor(Date.now() / 1000);
-          const signatureString = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-          const signature = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(signatureString))
-            .then(buffer => Array.from(new Uint8Array(buffer))
-              .map(b => b.toString(16).padStart(2, '0'))
-              .join(''));
-
-          const formData = new FormData();
-          formData.append('file', new Blob([buffer], { type: 'image/png' }));
-          formData.append('api_key', CLOUDINARY_API_KEY);
-          formData.append('timestamp', timestamp.toString());
-          formData.append('signature', signature);
-          formData.append('format', 'png');
-
-          console.log('Uploading to Cloudinary...');
-          const cloudRes = await fetch(CLOUDINARY_UPLOAD_URL, {
-            method: 'POST',
-            body: formData,
-          });
-          
-          if (!cloudRes.ok) {
-            console.error('Cloudinary upload failed:', cloudRes.status, cloudRes.statusText);
-            return;
-          }
-          
-          const cloudData = await cloudRes.json();
-          console.log('Cloudinary response:', cloudData);
-          
-          if (cloudData.secure_url) {
-            const { createScreenshot } = await import('@/lib/db');
-            await createScreenshot(sandboxUrl, cloudData.secure_url);
-            console.log('Screenshot saved to database:', cloudData.secure_url);
-          }
-        } catch (error) {
-          console.error('Screenshot capture failed:', error);
-        }
-      });
-    }
-
     await step.run("save-result", async () => {
 
       if (isError) {
@@ -339,7 +269,7 @@ export const codeAgentFunction = inngest.createFunction(
       }
 
 
-      return await prisma.message.create({
+      const message = await prisma.message.create({
         data: {
             projectId: event.data.projectId,
           content: generateResponse(),
@@ -353,8 +283,90 @@ export const codeAgentFunction = inngest.createFunction(
             }
           }
         },
-      })
+      });
+
+      return message;
     });
+
+    // Save sandbox URL to database for public projects (outside of save-result step)
+    if (!isError && project?.visibility === 'public') {
+      await step.run("save-sandbox-url", async () => {
+        try {
+          console.log('Saving sandbox URL for public project:', sandboxUrl);
+          
+          // Check if we already have a screenshot for this URL
+          const { getScreenshotBySandboxUrl } = await import('@/lib/db');
+          const existingScreenshot = await getScreenshotBySandboxUrl(sandboxUrl);
+          
+          if (!existingScreenshot) {
+            // Try to capture screenshot if Cloudinary credentials are available
+            const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
+            const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
+            const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+
+            if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
+              try {
+                console.log('Attempting to capture screenshot...');
+                
+                const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+
+                // Fetch thum.io image
+                const thumioUrl = `https://image.thum.io/get/width/1280/crop/720/${sandboxUrl}`;
+                console.log('Fetching from thum.io:', thumioUrl);
+                
+                const thumioRes = await fetch(thumioUrl);
+                if (thumioRes.ok) {
+                  const buffer = await thumioRes.arrayBuffer();
+
+                  // Prepare signed upload
+                  const timestamp = Math.floor(Date.now() / 1000);
+                  const signatureString = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+                  const signature = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(signatureString))
+                    .then(buffer => Array.from(new Uint8Array(buffer))
+                      .map(b => b.toString(16).padStart(2, '0'))
+                      .join(''));
+
+                  const formData = new FormData();
+                  formData.append('file', new Blob([buffer], { type: 'image/png' }));
+                  formData.append('api_key', CLOUDINARY_API_KEY);
+                  formData.append('timestamp', timestamp.toString());
+                  formData.append('signature', signature);
+                  formData.append('format', 'png');
+
+                  console.log('Uploading to Cloudinary...');
+                  const cloudRes = await fetch(CLOUDINARY_UPLOAD_URL, {
+                    method: 'POST',
+                    body: formData,
+                  });
+                  
+                  if (cloudRes.ok) {
+                    const cloudData = await cloudRes.json();
+                    console.log('Cloudinary response:', cloudData);
+                    
+                    if (cloudData.secure_url) {
+                      const { createScreenshot } = await import('@/lib/db');
+                      await createScreenshot(sandboxUrl, cloudData.secure_url);
+                      console.log('Screenshot saved to database:', cloudData.secure_url);
+                      return;
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error('Screenshot capture failed:', error);
+              }
+            }
+            
+            // If screenshot capture failed or credentials missing, save with placeholder
+            console.log('Saving sandbox URL without screenshot');
+            const { createScreenshot } = await import('@/lib/db');
+            await createScreenshot(sandboxUrl, 'https://via.placeholder.com/1280x720/cccccc/666666?text=Project+Preview');
+            console.log('Placeholder screenshot saved to database');
+          }
+        } catch (error) {
+          console.error('Failed to save sandbox URL:', error);
+        }
+      });
+    }
 
     return { 
         url: sandboxUrl,
