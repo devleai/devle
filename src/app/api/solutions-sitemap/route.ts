@@ -5,11 +5,14 @@ export async function GET() {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://devle.ai';
     
-    // Get all public projects with slugs and titles
+    // Get all public projects with slugs and titles (no limit)
     const publicProjects = await prisma.project.findMany({
       where: {
         visibility: "public",
         slug: { not: null },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
       select: {
         slug: true,
@@ -33,7 +36,9 @@ export async function GET() {
       },
     });
 
-    // Filter out duplicates based on title
+    console.log(`Total public projects with slugs: ${publicProjects.length}`);
+
+    // Filter out duplicates based on title, but be less strict
     const uniqueProjects = [];
     const seenTitles = new Set();
 
@@ -41,14 +46,17 @@ export async function GET() {
       const title = project.messages[0]?.fragment?.title || "";
       const normalizedTitle = title.toLowerCase().trim();
       
-      // Check if we've seen this title before
-      if (seenTitles.has(normalizedTitle)) {
-        continue; // Skip duplicate titles
+      // Only skip if we've seen this exact title before
+      if (seenTitles.has(normalizedTitle) && normalizedTitle !== "") {
+        console.log(`Skipping duplicate title: ${normalizedTitle}`);
+        continue;
       }
 
       uniqueProjects.push(project);
       seenTitles.add(normalizedTitle);
     }
+
+    console.log(`Unique projects after filtering: ${uniqueProjects.length}`);
 
     // Create XML for solutions only
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
