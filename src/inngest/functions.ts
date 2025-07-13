@@ -313,18 +313,25 @@ export const codeAgentFunction = inngest.createFunction(
     });
 
     // Trigger generate-solution-page function if project is public
-    const projectVisibility = await prisma.project.findUnique({
-      where: { id: event.data.projectId },
-      select: { visibility: true }
+    const projectVisibility = await step.run("check-project-visibility", async () => {
+      const project = await prisma.project.findUnique({
+        where: { id: event.data.projectId },
+        select: { visibility: true }
+      });
+      console.log('🔍 Project visibility check:', { projectId: event.data.projectId, visibility: project?.visibility });
+      return project;
     });
 
     if (projectVisibility?.visibility === 'public') {
+      console.log('🚀 Sending code-agent/run.completed event for public project:', event.data.projectId);
       await inngest.send({
         name: "code-agent/run.completed",
         data: {
           projectId: event.data.projectId,
         },
       });
+    } else {
+      console.log('❌ Not sending event - project visibility is not public:', { projectId: event.data.projectId, visibility: projectVisibility?.visibility });
     }
 
     return { 
