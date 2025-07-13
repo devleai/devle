@@ -309,21 +309,6 @@ export const codeAgentFunction = inngest.createFunction(
         },
       });
 
-      // Trigger solution page generation for public projects after fragment is created
-      const project = await prisma.project.findUnique({
-        where: { id: event.data.projectId },
-        select: { visibility: true }
-      });
-      
-      if (project?.visibility === "public") {
-        await inngest.send({
-          name: "project/public-created",
-          data: {
-            projectId: event.data.projectId,
-          },
-        });
-      }
-
       return message;
     });
 
@@ -403,7 +388,7 @@ export const generateSolutionPageFunction = inngest.createFunction(
       where: { id: project.id },
       select: {
         messages: {
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: "asc" },
           select: {
             fragment: {
               select: { title: true, sandboxUrl: true },
@@ -416,11 +401,11 @@ export const generateSolutionPageFunction = inngest.createFunction(
     const fragmentTitle = fragment?.fragment?.title || "";
     const sandboxUrl = fragment?.fragment?.sandboxUrl;
 
-    // Use OpenAI to categorize the fragment title
+    // Use OpenAI to categorize based on the user's prompt
     const categoryAgent = createAgent({
       name: "category-agent",
-      description: "Categorizes a project title into a solution category.",
-      system: `You are an expert at classifying app types. Given this project title: "${fragmentTitle}", output only the best matching category from this list, and output ONLY the category name, nothing else:
+      description: "Categorizes a project prompt into a solution category.",
+      system: `You are an expert at classifying app types. Given this prompt of the user: "${firstMessage}", output only the best matching category from this list, and output ONLY the category name, nothing else:
 E-Commerce
 Blog
 Portfolio
@@ -442,7 +427,7 @@ Other
 If unsure, output exactly: Other.`,
       model: openai({ model: "gpt-4o" }),
     });
-    const { output: categoryOutput } = await categoryAgent.run(fragmentTitle);
+    const { output: categoryOutput } = await categoryAgent.run(firstMessage);
     let aiCategory = "Other";
     if (categoryOutput && categoryOutput[0]?.type === "text") {
       aiCategory = Array.isArray(categoryOutput[0].content)
@@ -454,6 +439,9 @@ If unsure, output exactly: Other.`,
       where: { id: project.id },
       data: { category: aiCategory },
     });
+
+    // Wait 2 minutes for AI/sandbox to be ready
+    await step.sleep("wait-for-screenshot", 2 * 60 * 1000);
 
     // Call the screenshot API route with retries and proper error handling
     if (sandboxUrl) {
