@@ -7,6 +7,8 @@ export async function GET(req: NextRequest) {
     const url = req.nextUrl.searchParams.get('url');
     const projectId = req.nextUrl.searchParams.get('projectId');
     
+    console.log('Screenshot API called with:', { url, projectId });
+    
     if (!url) return NextResponse.json({ error: 'Missing url' }, { status: 400 });
     if (!projectId) return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
 
@@ -14,6 +16,12 @@ export async function GET(req: NextRequest) {
     const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
     const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
     const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
+
+    console.log('Cloudinary credentials check:', {
+      hasCloudName: !!CLOUDINARY_CLOUD_NAME,
+      hasApiKey: !!CLOUDINARY_API_KEY,
+      hasApiSecret: !!CLOUDINARY_API_SECRET
+    });
 
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
       return NextResponse.json({ error: 'Screenshot service not configured' }, { status: 500 });
@@ -27,8 +35,20 @@ export async function GET(req: NextRequest) {
 
     // Upload to Cloudinary using the thum.io URL
     const timestamp = Math.floor(Date.now() / 1000);
-    const signatureString = `format=png&timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-    const signature = createHash('sha1').update(signatureString).digest('hex');
+    
+    // Create proper signature for Cloudinary
+    const paramsToSign = {
+      timestamp: timestamp.toString(),
+      format: 'png'
+    };
+    
+    // Sort parameters alphabetically and create signature string
+    const signatureParams = Object.keys(paramsToSign)
+      .sort()
+      .map(key => `${key}=${paramsToSign[key as keyof typeof paramsToSign]}`)
+      .join('&') + CLOUDINARY_API_SECRET;
+    
+    const signature = createHash('sha1').update(signatureParams).digest('hex');
 
     const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     const params = new URLSearchParams({
@@ -44,7 +64,18 @@ export async function GET(req: NextRequest) {
     });
 
     if (!cloudRes.ok) {
-      return NextResponse.json({ error: 'Failed to upload to Cloudinary' }, { status: 500 });
+      const errorText = await cloudRes.text();
+      console.error('Cloudinary upload failed:', {
+        status: cloudRes.status,
+        statusText: cloudRes.statusText,
+        error: errorText,
+        url: uploadUrl,
+        params: Object.fromEntries(params.entries())
+      });
+      return NextResponse.json({ 
+        error: 'Failed to upload to Cloudinary',
+        details: errorText
+      }, { status: 500 });
     }
 
     const cloudData = await cloudRes.json();
