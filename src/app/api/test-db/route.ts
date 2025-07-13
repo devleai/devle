@@ -3,12 +3,6 @@ import { prisma } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
-    // Check screenshots
-    const screenshots = await prisma.screenshot.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
-
     // Check fragments
     const fragments = await prisma.fragment.findMany({
       orderBy: { createdAt: "desc" },
@@ -53,10 +47,6 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      screenshots: {
-        count: screenshots.length,
-        data: screenshots
-      },
       fragments: {
         count: fragments.length,
         data: fragments

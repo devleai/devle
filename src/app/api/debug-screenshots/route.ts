@@ -3,11 +3,6 @@ import { prisma } from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
-    const screenshots = await prisma.screenshot.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    });
-
     const fragments = await prisma.fragment.findMany({
       where: {
         message: {
@@ -34,9 +29,7 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      screenshots,
       fragments,
-      screenshotCount: screenshots.length,
       fragmentCount: fragments.length,
       env: {
         CLOUDINARY_CLOUD_NAME: !!process.env.CLOUDINARY_CLOUD_NAME,

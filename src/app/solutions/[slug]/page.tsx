@@ -37,10 +37,22 @@ async function getProjectBySlug(slug: string) {
           },
         },
       },
+      screenshots: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          imageUrl: true,
+        },
+      },
     },
   });
 
   return project;
+}
+
+function getFirstFragmentTitle(messages: any[]) {
+  const msg = messages.find(m => m.fragment && m.fragment.title && m.fragment.title.trim() !== "");
+  return msg?.fragment?.title;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -53,22 +65,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
   }
 
-  const firstMessage = project.messages[0]?.content || "";
-  const title = project.messages[0]?.fragment?.title || project.name;
-  const description = `Build ${title} using AI with Devle. Create apps and websites by chatting with AI.`;
+  const fragmentTitle = getFirstFragmentTitle(project.messages);
+  const title = fragmentTitle || project.name;
+  const description = `Build a ${title} with our AI site builder. Create a ${title} by chatting with our AI.`;
 
   return {
-    title: `Build ${title} using AI - Devle`,
-    description: description,
+    title: `Build a ${title} with our AI site builder - Devle`,
+    description,
     openGraph: {
-      title: `Build ${title} using AI - Devle`,
-      description: description,
+      title: `Build a ${title} with our AI site builder - Devle`,
+      description,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: `Build ${title} using AI - Devle`,
-      description: description,
+      title: `Build a ${title} with our AI site builder - Devle`,
+      description,
     },
   };
 }
@@ -82,8 +94,25 @@ export default async function SolutionPage({ params }: Props) {
   }
 
   const firstMessage = project.messages[0]?.content || "";
+  const fragmentTitle = getFirstFragmentTitle(project.messages);
+  const title = fragmentTitle || project.name;
   const fragment = project.messages.find(m => m.fragment)?.fragment;
-  const title = fragment?.title || project.name;
+  const screenshotUrl = project.screenshots[0]?.imageUrl;
+
+  // If no screenshot exists, trigger screenshot generation (fire-and-forget)
+  if (!screenshotUrl && project.id && fragment?.sandboxUrl) {
+    (async () => {
+      try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const url = encodeURIComponent(fragment.sandboxUrl);
+        const projectId = encodeURIComponent(project.id);
+        await fetch(`${baseUrl}/api/screenshot?url=${url}&projectId=${projectId}`);
+      } catch (e) {
+        // Log but don't block
+        console.error('Screenshot trigger failed:', e);
+      }
+    })();
+  }
 
   return (
     <div style={{ position: "relative", width: "100%", minHeight: "100vh" }}>
@@ -147,13 +176,25 @@ export default async function SolutionPage({ params }: Props) {
         {fragment && (
           <div className="bg-white dark:bg-sidebar rounded-xl p-8 border mb-8">
             <h2 className="text-2xl font-semibold mb-4">Live Demo</h2>
-            <div className="border rounded-lg overflow-hidden">
-              <iframe
-                src={fragment.sandboxUrl}
-                className="w-full h-96 border-0"
-                title={fragment.title}
-              />
-            </div>
+            {screenshotUrl ? (
+              <div className="border rounded-lg overflow-hidden mb-4">
+                <Image
+                  src={screenshotUrl}
+                  alt={title + " screenshot"}
+                  width={1280}
+                  height={720}
+                  className="w-full h-auto object-cover"
+                />
+              </div>
+            ) : (
+              <div className="border rounded-lg overflow-hidden mb-4">
+                <iframe
+                  src={fragment.sandboxUrl}
+                  className="w-full h-96 border-0"
+                  title={fragment.title}
+                />
+              </div>
+            )}
             <div className="mt-4">
               <Link href={fragment.sandboxUrl} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline">

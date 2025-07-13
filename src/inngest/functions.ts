@@ -7,11 +7,28 @@ import { getSandbox, lastAssistantTextMessageContent } from "./utils";
 import { FRAGMENT_TITLE_PROMPT, PROMPT, RESPONSE_PROMPT } from "@/prompt";
 
 import { prisma } from "@/lib/db";
+import FormData from "form-data";
+import { createHash } from "crypto";
 
 
 interface AgentState {
   summary: string;
   files: { [path: string]: string };
+}
+
+function categorizeFromTitle(title: string): string {
+  const t = title.toLowerCase();
+  if (t.includes('e-commerce') || t.includes('shop') || t.includes('store')) return 'E-Commerce';
+  if (t.includes('blog')) return 'Blog';
+  if (t.includes('portfolio')) return 'Portfolio';
+  if (t.includes('chat') || t.includes('messaging')) return 'Chat';
+  if (t.includes('dashboard')) return 'Dashboard';
+  if (t.includes('landing')) return 'Landing Page';
+  if (t.includes('saas')) return 'SaaS';
+  if (t.includes('game')) return 'Game';
+  if (t.includes('social')) return 'Social';
+  if (t.includes('ai') || t.includes('assistant')) return 'AI';
+  return 'Other';
 }
 
 export const codeAgentFunction = inngest.createFunction(
@@ -268,6 +285,13 @@ export const codeAgentFunction = inngest.createFunction(
         });
       }
 
+      // Auto-categorize project based on fragment title
+      const fragmentTitle = generateFragmentTitle();
+      const category = categorizeFromTitle(fragmentTitle);
+      await prisma.project.update({
+        where: { id: event.data.projectId },
+        data: { category },
+      });
 
       const message = await prisma.message.create({
         data: {
@@ -278,7 +302,7 @@ export const codeAgentFunction = inngest.createFunction(
           fragment: {
             create: {
               sandboxUrl: sandboxUrl,
-              title: generateFragmentTitle(),
+              title: fragmentTitle,
               files: result.state.data.files,
             }
           }
@@ -287,86 +311,6 @@ export const codeAgentFunction = inngest.createFunction(
 
       return message;
     });
-
-    // Save sandbox URL to database for public projects (outside of save-result step)
-    if (!isError && project?.visibility === 'public') {
-      await step.run("save-sandbox-url", async () => {
-        try {
-          console.log('Saving sandbox URL for public project:', sandboxUrl);
-          
-          // Check if we already have a screenshot for this URL
-          const { getScreenshotBySandboxUrl } = await import('@/lib/db');
-          const existingScreenshot = await getScreenshotBySandboxUrl(sandboxUrl);
-          
-          if (!existingScreenshot) {
-            // Try to capture screenshot if Cloudinary credentials are available
-            const CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME;
-            const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY;
-            const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET;
-
-            if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_API_KEY && CLOUDINARY_API_SECRET) {
-              try {
-                console.log('Attempting to capture screenshot...');
-                
-                const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
-
-                // Fetch thum.io image
-                const thumioUrl = `https://image.thum.io/get/width/1280/crop/720/${sandboxUrl}`;
-                console.log('Fetching from thum.io:', thumioUrl);
-                
-                const thumioRes = await fetch(thumioUrl);
-                if (thumioRes.ok) {
-                  const buffer = await thumioRes.arrayBuffer();
-
-                  // Prepare signed upload
-                  const timestamp = Math.floor(Date.now() / 1000);
-                  const signatureString = `timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-                  const signature = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(signatureString))
-                    .then(buffer => Array.from(new Uint8Array(buffer))
-                      .map(b => b.toString(16).padStart(2, '0'))
-                      .join(''));
-
-                  const formData = new FormData();
-                  formData.append('file', new Blob([buffer], { type: 'image/png' }));
-                  formData.append('api_key', CLOUDINARY_API_KEY);
-                  formData.append('timestamp', timestamp.toString());
-                  formData.append('signature', signature);
-                  formData.append('format', 'png');
-
-                  console.log('Uploading to Cloudinary...');
-                  const cloudRes = await fetch(CLOUDINARY_UPLOAD_URL, {
-                    method: 'POST',
-                    body: formData,
-                  });
-                  
-                  if (cloudRes.ok) {
-                    const cloudData = await cloudRes.json();
-                    console.log('Cloudinary response:', cloudData);
-                    
-                    if (cloudData.secure_url) {
-                      const { createScreenshot } = await import('@/lib/db');
-                      await createScreenshot(sandboxUrl, cloudData.secure_url);
-                      console.log('Screenshot saved to database:', cloudData.secure_url);
-                      return;
-                    }
-                  }
-                }
-              } catch (error) {
-                console.error('Screenshot capture failed:', error);
-              }
-            }
-            
-            // If screenshot capture failed or credentials missing, save with placeholder
-            console.log('Saving sandbox URL without screenshot');
-            const { createScreenshot } = await import('@/lib/db');
-            await createScreenshot(sandboxUrl, 'https://via.placeholder.com/1280x720/cccccc/666666?text=Project+Preview');
-            console.log('Placeholder screenshot saved to database');
-          }
-        } catch (error) {
-          console.error('Failed to save sandbox URL:', error);
-        }
-      });
-    }
 
     return { 
         url: sandboxUrl,
@@ -438,6 +382,108 @@ export const generateSolutionPageFunction = inngest.createFunction(
         data: { slug },
       });
     });
+
+    // Fetch fragment title and sandboxUrl from the latest fragment
+    const projectWithFragment = await prisma.project.findUnique({
+      where: { id: project.id },
+      select: {
+        messages: {
+          orderBy: { createdAt: "asc" },
+          select: {
+            fragment: {
+              select: { title: true, sandboxUrl: true },
+            },
+          },
+        },
+      },
+    });
+    const fragment = projectWithFragment?.messages.find(m => m.fragment);
+    const fragmentTitle = fragment?.fragment?.title || "";
+    const sandboxUrl = fragment?.fragment?.sandboxUrl;
+
+    // Use OpenAI to categorize the fragment title
+    const categoryAgent = createAgent({
+      name: "category-agent",
+      description: "Categorizes a project title into a solution category.",
+      system: `You are an expert at classifying app types. Given a project title, output only the best matching category from this list, and output ONLY the category name, nothing else:
+E-Commerce
+Blog
+Portfolio
+Chat
+Dashboard
+Landing Page
+SaaS
+Game
+Social
+AI
+Music Player
+File Manager
+YouTube
+Netflix
+Property Listings
+Image Upload/OCR
+Job Portal
+Other
+If unsure, output exactly: Other.`,
+      model: openai({ model: "gpt-4o" }),
+    });
+    const { output: categoryOutput } = await categoryAgent.run(fragmentTitle);
+    let aiCategory = "Other";
+    if (categoryOutput && categoryOutput[0]?.type === "text") {
+      aiCategory = Array.isArray(categoryOutput[0].content)
+        ? categoryOutput[0].content.join("")
+        : categoryOutput[0].content;
+      aiCategory = aiCategory.split("\n")[0].trim();
+    }
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { category: aiCategory },
+    });
+
+    // Wait 2 minutes for AI/sandbox to be ready
+    await step.sleep("wait-for-screenshot", 2 * 60 * 1000);
+
+    // Instantly call the screenshot API route after 2 minutes
+    if (sandboxUrl) {
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const url = encodeURIComponent(sandboxUrl);
+      const projectId = encodeURIComponent(project.id);
+      await fetch(`${baseUrl}/api/screenshot?url=${url}&projectId=${projectId}`);
+    }
+
+    // Check if the latest assistant message is an error
+    const lastAssistantMessage = await prisma.message.findFirst({
+      where: {
+        projectId: project.id,
+        role: 'ASSISTANT',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { type: true },
+    });
+    if (lastAssistantMessage?.type === 'ERROR') {
+      return { message: 'Not creating solution page: sandbox result is an error.' };
+    }
+
+    // Check for duplicate fragment title in other public projects that have a solution page (slug is not null)
+    if (fragmentTitle) {
+      const duplicate = await prisma.project.findFirst({
+        where: {
+          id: { not: project.id },
+          visibility: 'public',
+          slug: { not: null },
+          messages: {
+            some: {
+              fragment: {
+                title: fragmentTitle,
+              },
+            },
+          },
+        },
+      });
+      if (duplicate) {
+        return { message: 'Not creating solution page: duplicate fragment title.' };
+      }
+    }
 
     return {
       projectId: project.id,

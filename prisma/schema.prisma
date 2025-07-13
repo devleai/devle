@@ -24,6 +24,8 @@ model Project {
   visibility String @default("private") // "public" or "private"
   slug String? // URL-friendly slug for solution pages
   messages Message[]
+  screenshots Screenshot[]
+  category String? // Auto-categorized from fragment title
 }
 
 
@@ -73,7 +75,9 @@ model Usage {
 
 model Screenshot {
   id         String   @id @default(uuid())
-  sandboxUrl String   @unique
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   imageUrl   String
+  sandboxUrl String
   createdAt  DateTime @default(now())
 }
