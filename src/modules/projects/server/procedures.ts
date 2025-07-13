@@ -107,18 +107,6 @@ export const projectsRouter = createTRPCRouter({
               },
             });
 
-        // Trigger solution page generation for public projects
-        if (input.visibility === "public") {
-          console.log('🚀 Sending public project event for:', createdProject.id);
-          await inngest.send({
-            name: "project/public-created",
-            data: {
-              projectId: createdProject.id,
-            },
-          });
-          console.log('✅ Public project event sent');
-        }
-
         return createdProject;
     }),
 
@@ -134,14 +122,28 @@ updateVisibility: protectedProcedure
             data: { visibility: input.visibility }
         });
 
-        // Trigger solution page generation if project becomes public
+        // Trigger solution page generation if project becomes public and already has a fragment
         if (input.visibility === "public") {
-          await inngest.send({
-            name: "project/public-created",
-            data: {
-              projectId: input.projectId,
-            },
+          const projectWithFragment = await prisma.project.findUnique({
+            where: { id: input.projectId },
+            select: {
+              messages: {
+                where: {
+                  fragment: { isNot: null }
+                },
+                take: 1
+              }
+            }
           });
+          
+          if (projectWithFragment?.messages && projectWithFragment.messages.length > 0) {
+            await inngest.send({
+              name: "project/public-created",
+              data: {
+                projectId: input.projectId,
+              },
+            });
+          }
         }
 
         return true;

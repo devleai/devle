@@ -309,6 +309,21 @@ export const codeAgentFunction = inngest.createFunction(
         },
       });
 
+      // Trigger solution page generation for public projects after fragment is created
+      const project = await prisma.project.findUnique({
+        where: { id: event.data.projectId },
+        select: { visibility: true }
+      });
+      
+      if (project?.visibility === "public") {
+        await inngest.send({
+          name: "project/public-created",
+          data: {
+            projectId: event.data.projectId,
+          },
+        });
+      }
+
       return message;
     });
 
@@ -388,7 +403,7 @@ export const generateSolutionPageFunction = inngest.createFunction(
       where: { id: project.id },
       select: {
         messages: {
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
           select: {
             fragment: {
               select: { title: true, sandboxUrl: true },
@@ -440,15 +455,43 @@ If unsure, output exactly: Other.`,
       data: { category: aiCategory },
     });
 
-    // Wait 2 minutes for AI/sandbox to be ready
-    await step.sleep("wait-for-screenshot", 2 * 60 * 1000);
-
-    // Instantly call the screenshot API route after 2 minutes
+    // Call the screenshot API route with retries and proper error handling
     if (sandboxUrl) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      const url = encodeURIComponent(sandboxUrl);
-      const projectId = encodeURIComponent(project.id);
-      await fetch(`${baseUrl}/api/screenshot?url=${url}&projectId=${projectId}`);
+      await step.run("generate-screenshot", async () => {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        const url = encodeURIComponent(sandboxUrl);
+        const projectId = encodeURIComponent(project.id);
+        
+        // Try up to 3 times with increasing delays
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          try {
+            console.log(`Screenshot attempt ${attempt} for project ${project.id}`);
+            const response = await fetch(`${baseUrl}/api/screenshot?url=${url}&projectId=${projectId}`);
+            
+            if (response.ok) {
+              const result = await response.json();
+              console.log(`Screenshot generated successfully:`, result);
+              return result;
+            } else {
+              const error = await response.text();
+              console.error(`Screenshot attempt ${attempt} failed:`, response.status, error);
+              
+              if (attempt < 3) {
+                // Wait longer between retries
+                await new Promise(resolve => setTimeout(resolve, 30 * 1000 * attempt));
+              }
+            }
+          } catch (error) {
+            console.error(`Screenshot attempt ${attempt} threw error:`, error);
+            if (attempt < 3) {
+              await new Promise(resolve => setTimeout(resolve, 30 * 1000 * attempt));
+            }
+          }
+        }
+        
+        console.error(`All screenshot attempts failed for project ${project.id}`);
+        return { error: 'Screenshot generation failed after 3 attempts' };
+      });
     }
 
     // Check if the latest assistant message is an error

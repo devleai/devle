@@ -27,20 +27,69 @@ export async function GET(req: NextRequest) {
 
     const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
-    // Fetch thum.io image as PNG
-    const thumioUrl = `https://image.thum.io/get/png/width/1280/crop/720/${url}`;
-    console.log('Fetching from thum.io:', thumioUrl);
+    // Try multiple screenshot services with fallbacks
+    let buffer: Buffer | null = null;
+    let screenshotSource = 'unknown';
     
-    const thumioRes = await fetch(thumioUrl);
-    if (!thumioRes.ok) {
-      console.error('thum.io failed:', thumioRes.status, thumioRes.statusText);
+    // First try thum.io
+    try {
+      const thumioUrl = `https://image.thum.io/get/png/width/1280/crop/720/${url}`;
+      console.log('Trying thum.io:', thumioUrl);
+      
+      const thumioRes = await fetch(thumioUrl, { 
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+      
+      if (thumioRes.ok) {
+        buffer = Buffer.from(await thumioRes.arrayBuffer());
+        screenshotSource = 'thum.io';
+        console.log('Successfully got screenshot from thum.io');
+      } else {
+        console.error('thum.io failed:', thumioRes.status, thumioRes.statusText);
+      }
+    } catch (error) {
+      console.error('thum.io error:', error);
+    }
+
+    // Fallback to urlbox.io if thum.io fails
+    if (!buffer) {
+      try {
+        const urlboxApiKey = process.env.URLBOX_API_KEY;
+        const urlboxApiSecret = process.env.URLBOX_API_SECRET;
+        
+        if (urlboxApiKey && urlboxApiSecret) {
+          const urlboxUrl = `https://api.urlbox.io/v1/${urlboxApiKey}/png?url=${encodeURIComponent(url)}&width=1280&height=720&full_page=false`;
+          console.log('Trying urlbox.io fallback');
+          
+          const urlboxRes = await fetch(urlboxUrl, { 
+            headers: {
+              'Authorization': `Basic ${Buffer.from(`${urlboxApiKey}:${urlboxApiSecret}`).toString('base64')}`
+            }
+          });
+          
+          if (urlboxRes.ok) {
+            buffer = Buffer.from(await urlboxRes.arrayBuffer());
+            screenshotSource = 'urlbox.io';
+            console.log('Successfully got screenshot from urlbox.io');
+          } else {
+            console.error('urlbox.io failed:', urlboxRes.status, urlboxRes.statusText);
+          }
+        }
+      } catch (error) {
+        console.error('urlbox.io error:', error);
+      }
+    }
+
+    // If all screenshot services fail, return error
+    if (!buffer) {
+      console.error('All screenshot services failed');
       return NextResponse.json({ 
-        error: 'Failed to fetch screenshot from thum.io',
-        details: `Status: ${thumioRes.status}`
+        error: 'Failed to generate screenshot',
+        details: 'All screenshot services (thum.io, urlbox.io) failed'
       }, { status: 500 });
     }
-    
-    const buffer = Buffer.from(await thumioRes.arrayBuffer());
 
     // Prepare signed upload
     const timestamp = Math.floor(Date.now() / 1000);
@@ -100,9 +149,15 @@ export async function GET(req: NextRequest) {
         error: 'Failed to upload to Cloudinary',
         details: cloudinaryError,
         imageUrl: 'FAILED',
+        screenshotSource,
       }, { status: 500 });
     }
-    return NextResponse.json({ imageUrl: screenshot.imageUrl });
+    
+    console.log(`Screenshot successfully generated and uploaded from ${screenshotSource}`);
+    return NextResponse.json({ 
+      imageUrl: screenshot.imageUrl,
+      screenshotSource,
+    });
     
   } catch (error) {
     console.error('Screenshot API error:', error);

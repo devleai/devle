@@ -99,16 +99,25 @@ export default async function SolutionPage({ params }: Props) {
   const fragment = project.messages.find(m => m.fragment)?.fragment;
   const screenshotUrl = project.screenshots[0]?.imageUrl;
 
-  // If no screenshot exists, trigger screenshot generation (fire-and-forget)
+  // If no screenshot exists, trigger screenshot generation with better error handling
   if (!screenshotUrl && project.id && fragment?.sandboxUrl) {
     (async () => {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         const url = encodeURIComponent(fragment.sandboxUrl);
         const projectId = encodeURIComponent(project.id);
-        await fetch(`${baseUrl}/api/screenshot?url=${url}&projectId=${projectId}`);
+        
+        console.log('Triggering screenshot generation for project:', project.id);
+        const response = await fetch(`${baseUrl}/api/screenshot?url=${url}&projectId=${projectId}`);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Screenshot generated successfully:', result);
+        } else {
+          const error = await response.text();
+          console.error('Screenshot generation failed:', response.status, error);
+        }
       } catch (e) {
-        // Log but don't block
         console.error('Screenshot trigger failed:', e);
       }
     })();
