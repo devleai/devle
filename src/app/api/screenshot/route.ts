@@ -33,12 +33,11 @@ export async function GET(req: NextRequest) {
     
     // First try thum.io
     try {
-      const thumioAuth = '74672-defeefef';
-      const thumioUrl = `https://image.thum.io/get/auth/${thumioAuth}/png/width/1280/crop/720/${url}`;
+      const thumioUrl = `https://image.thum.io/get/auth/74672-defeefef/png/width/1280/crop/720/${url}`;
       console.log('Trying thum.io:', thumioUrl);
       
       // Wait 5 seconds before taking the screenshot
-      console.log('Waiting 5 seconds before taking thum.io screenshot...');
+      console.log('Waiting 10 seconds before taking thum.io screenshot...');
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       const thumioRes = await fetch(thumioUrl, { 
