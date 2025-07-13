@@ -36,6 +36,10 @@ export async function GET(req: NextRequest) {
       const thumioUrl = `https://image.thum.io/get/png/width/1280/crop/720/${url}`;
       console.log('Trying thum.io:', thumioUrl);
       
+      // Wait 5 seconds before taking the screenshot
+      console.log('Waiting 5 seconds before taking thum.io screenshot...');
+      await new Promise(resolve => setTimeout(resolve, 5000));
+      
       const thumioRes = await fetch(thumioUrl, { 
         headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
