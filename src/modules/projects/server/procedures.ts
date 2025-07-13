@@ -170,27 +170,29 @@ updateVisibility: protectedProcedure
     }),
 
     getLatestScreenshots: baseProcedure.query(async () => {
-        const screenshots = await prisma.screenshot.findMany({
+        const projects = await prisma.project.findMany({
+            where: {
+                visibility: 'public',
+            },
             orderBy: { createdAt: 'desc' },
             take: 10,
-            where: {
-                project: {
-                    visibility: 'public',
-                },
-            },
-            include: {
-                project: {
+            select: {
+                id: true,
+                name: true,
+                category: true,
+                createdAt: true,
+                screenshots: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
                     select: {
-                        id: true,
-                        name: true,
-                        category: true,
-                        visibility: true,
+                        imageUrl: true,
+                        sandboxUrl: true,
                         createdAt: true,
                     },
                 },
             },
         });
-        return screenshots;
+        return projects;
     }),
 
 });
