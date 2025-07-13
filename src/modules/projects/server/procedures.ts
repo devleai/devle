@@ -169,4 +169,28 @@ updateVisibility: protectedProcedure
         return fragments;
     }),
 
+    getLatestScreenshots: baseProcedure.query(async () => {
+        const screenshots = await prisma.screenshot.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 10,
+            where: {
+                project: {
+                    visibility: 'public',
+                },
+            },
+            include: {
+                project: {
+                    select: {
+                        id: true,
+                        name: true,
+                        category: true,
+                        visibility: true,
+                        createdAt: true,
+                    },
+                },
+            },
+        });
+        return screenshots;
+    }),
+
 });
