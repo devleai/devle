@@ -47,7 +47,7 @@ export async function getPublicSolutions() {
     const msg = project.messages[0];
     const title = msg?.fragment?.title || project.name;
     const normalizedTitle = title.toLowerCase().trim();
-    // Only include if not error and has a valid fragment titles
+    // Only include if not error and has a valid fragment title
     if (
       msg?.type === "ERROR" ||
       !msg?.fragment?.title ||
