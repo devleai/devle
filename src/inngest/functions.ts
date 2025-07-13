@@ -312,6 +312,21 @@ export const codeAgentFunction = inngest.createFunction(
       return message;
     });
 
+    // Trigger generate-solution-page function if project is public
+    const projectVisibility = await prisma.project.findUnique({
+      where: { id: event.data.projectId },
+      select: { visibility: true }
+    });
+
+    if (projectVisibility?.visibility === 'public') {
+      await inngest.send({
+        name: "code-agent/run.completed",
+        data: {
+          projectId: event.data.projectId,
+        },
+      });
+    }
+
     return { 
         url: sandboxUrl,
         title: "Fragment",
@@ -323,7 +338,7 @@ export const codeAgentFunction = inngest.createFunction(
 
 export const generateSolutionPageFunction = inngest.createFunction(
   { id: "generate-solution-page" },
-  { event: "project/public-created" },
+  { event: "code-agent/run.completed" },
   async ({ event, step }) => {
     try {
       console.log('🔍 Inngest function triggered:', event);
@@ -388,7 +403,7 @@ export const generateSolutionPageFunction = inngest.createFunction(
       where: { id: project.id },
       select: {
         messages: {
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: "desc" },
           select: {
             fragment: {
               select: { title: true, sandboxUrl: true },
@@ -405,7 +420,7 @@ export const generateSolutionPageFunction = inngest.createFunction(
     const categoryAgent = createAgent({
       name: "category-agent",
       description: "Categorizes a project prompt into a solution category.",
-      system: `You are an expert at classifying app types. Given this prompt of the user:, output only the best matching category from this list, and output ONLY the category name, nothing else:
+      system: `You are an expert at classifying app types. Given this prompt of the user: , output only the best matching category from this list, and output ONLY the category name, nothing else:
 E-Commerce
 Blog
 Portfolio
@@ -440,8 +455,8 @@ If unsure, output exactly: Other.`,
       data: { category: aiCategory },
     });
 
-    // Wait 2 minutes for AI/sandbox to be ready
-    await step.sleep("wait-for-screenshot", 2 * 60 * 1000);
+    // Wait 10 seconds for AI/sandbox to be ready
+    await step.sleep("wait-for-screenshot", 10 * 1000);
 
     // Call the screenshot API route with retries and proper error handling
     if (sandboxUrl) {
