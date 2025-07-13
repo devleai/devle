@@ -405,7 +405,7 @@ export const generateSolutionPageFunction = inngest.createFunction(
     const categoryAgent = createAgent({
       name: "category-agent",
       description: "Categorizes a project title into a solution category.",
-      system: `You are an expert at classifying app types. Given a project title, output only the best matching category from this list, and output ONLY the category name, nothing else:
+      system: `You are an expert at classifying app types. Given this project title: "${fragmentTitle}", output only the best matching category from this list, and output ONLY the category name, nothing else:
 E-Commerce
 Blog
 Portfolio
