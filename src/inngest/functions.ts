@@ -462,8 +462,8 @@ If unsure, output exactly: Other.`,
       data: { category: aiCategory },
     });
 
-    // Wait 10 seconds for AI/sandbox to be ready
-    await step.sleep("wait-for-screenshot", 10 * 1000);
+    // Wait 30 seconds for AI/sandbox to be ready
+    await step.sleep("wait-for-screenshot", 30 * 1000);
 
     // Call the screenshot API route with retries and proper error handling
     if (sandboxUrl) {
