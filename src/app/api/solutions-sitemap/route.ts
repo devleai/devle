@@ -43,8 +43,8 @@ export async function GET() {
     const seenTitles = new Set();
 
     for (const project of publicProjects) {
-      const title = project.messages[0]?.fragment?.title || "";
-      const normalizedTitle = title.toLowerCase().trim();
+      const title = project.messages[0]?.fragment?.title;
+      const normalizedTitle = (title || "").toLowerCase().trim();
       
       // Only skip if we've seen this exact title before
       if (seenTitles.has(normalizedTitle) && normalizedTitle !== "") {
