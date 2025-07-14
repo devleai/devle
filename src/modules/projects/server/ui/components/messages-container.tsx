@@ -17,8 +17,7 @@ interface Props {
 export const MessagesContainer = ({ 
     projectId,
     activeFragment,
-    setActiveFragment
-
+    setActiveFragment,
 }: Props) => {
     const bottomRef = useRef<HTMLDivElement>(null);
 

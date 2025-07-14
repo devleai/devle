@@ -23,6 +23,9 @@ import { TreeView } from "./tree-view";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { DownloadIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useRef } from "react";
+import { toast } from "sonner";
 
 type fileCollection= { [path: string]: string };
 
@@ -108,10 +111,14 @@ const FileBreadcrumb = ({ filePath }: FileBreadcrumbProps) => {
 
 interface FileExplorerProps {
     files: fileCollection;
+    sandboxId: string;
+    activeFragment?: { id: string } | null;
 }
 
 export const FileExplorer = ({
     files,
+    sandboxId,
+    activeFragment,
 }: FileExplorerProps) => {
     const [copied, setCopied] = useState(false);
 
@@ -120,6 +127,11 @@ export const FileExplorer = ({
         return fileKeys.length > 0 ? fileKeys[0] : null;
 
     });
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editContent, setEditContent] = useState("");
+    const [fileState, setFileState] = useState(files);
+    const editRef = useRef<HTMLTextAreaElement>(null);
 
     const treeData = useMemo(() => {
         return convertFilesToTreeItems(files);
@@ -146,6 +158,49 @@ setCopied(false);
 }
 }, [selectedFile, files]);
 
+    const handleEdit = useCallback(() => {
+        if (selectedFile) {
+            setEditContent(fileState[selectedFile]);
+            setIsEditing(true);
+            setTimeout(() => editRef.current?.focus(), 0);
+        }
+    }, [selectedFile, fileState]);
+
+    const handleSave = useCallback(async () => {
+        if (!selectedFile) return;
+        try {
+            // Update file in E2B sandbox
+            const res = await fetch("/api/update-sandbox-file", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path: selectedFile, content: editContent, sandboxId }),
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to update file");
+            }
+
+            // Update local state
+            const updatedFiles = { ...fileState, [selectedFile]: editContent };
+            setFileState(updatedFiles);
+
+            // Save updated files to database
+            await fetch("/api/update-fragment-files", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    fragmentId: activeFragment?.id,
+                    files: updatedFiles 
+                }),
+            });
+
+            setIsEditing(false);
+            toast.success("File updated in sandbox");
+        } catch (err: any) {
+            toast.error(`Failed to update file: ${err.message}`);
+        }
+    }, [selectedFile, editContent, sandboxId, fileState, activeFragment?.id]);
+
 
     return (
         <ResizablePanelGroup direction="horizontal">
@@ -158,11 +213,22 @@ setCopied(false);
 </ResizablePanel> 
 <ResizableHandle className="hover:bg-primary transition-colors" />
 <ResizablePanel defaultSize={70} minSize={50}> 
-    {selectedFile && files[selectedFile] ? (
+    {selectedFile && fileState[selectedFile] ? (
         <div className="h-full w-full flex flex-col">
             <div className="border-b bg-sidebar px-4 py-2 flex justify-between items-center gap-x-2">
                 <FileBreadcrumb filePath={selectedFile} />
                 
+                <Hint text="Edit file" side="bottom">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="ml-2"
+                        onClick={handleEdit}
+                        disabled={isEditing}
+                    >
+                        Edit
+                    </Button>
+                </Hint>
                 <Hint text="Copy to clipboard" side="bottom">
                  <Button
                  variant="outline"
@@ -181,7 +247,7 @@ setCopied(false);
                     className="ml-2"
                     onClick={async () => {
                       const zip = new JSZip();
-                      Object.entries(files).forEach(([path, content]) => {
+                      Object.entries(fileState).forEach(([path, content]) => {
                         zip.file(path, content);
                       });
                       const blob = await zip.generateAsync({ type: "blob" });
@@ -193,10 +259,26 @@ setCopied(false);
                 </Hint>
             </div>
             <div className="flex-1 overflow-auto"> 
-                <CodeView
-                code={files[selectedFile]}
-                lang={getLanguageFromExtension(selectedFile)}
-                />
+                {isEditing ? (
+                    <div className="h-full flex flex-col">
+                        <Textarea
+                            ref={editRef}
+                            className="flex-1 font-mono"
+                            value={editContent}
+                            onChange={e => setEditContent(e.target.value)}
+                            style={{ minHeight: 300 }}
+                        />
+                        <div className="flex gap-2 mt-2">
+                            <Button onClick={handleSave} variant="default">Save</Button>
+                            <Button onClick={() => setIsEditing(false)} variant="secondary">Cancel</Button>
+                        </div>
+                    </div>
+                ) : (
+                    <CodeView
+                        code={fileState[selectedFile]}
+                        lang={getLanguageFromExtension(selectedFile)}
+                    />
+                )}
             </div>
         </div>
     ) : (

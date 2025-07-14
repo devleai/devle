@@ -5,7 +5,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { MessagesContainer } from "../components/messages-container";
-import { act, Suspense, useState } from "react";
+import { act, Suspense, useState, useEffect, useCallback } from "react";
  
 import { Fragment } from "@/generated/prisma"
 import { ProjectHeader } from "../components/project-header";
@@ -40,6 +40,22 @@ export const ProjectView = ({ projectId }: Props) => {
     const [activeFragment, setActiveFragment] = useState<Fragment | null>(null);
 
     const [tabState, setTabState] = useState<"preview" | "code">("preview");
+
+    // New state for files and sandboxId
+    const [files, setFiles] = useState<{ [path: string]: string }>({});
+    const [sandboxId, setSandboxId] = useState<string>("");
+
+    // Update files and sandboxId when activeFragment changes
+    useEffect(() => {
+        if (activeFragment) {
+            if (activeFragment.files && typeof activeFragment.files === 'object' && !Array.isArray(activeFragment.files)) {
+                setFiles(activeFragment.files as { [path: string]: string });
+            }
+            if (activeFragment.sandboxId) {
+                setSandboxId(activeFragment.sandboxId);
+            }
+        }
+    }, [activeFragment]);
 
     return (
         <div className="h-screen">
@@ -122,9 +138,11 @@ export const ProjectView = ({ projectId }: Props) => {
 
                                  <TabsContent value="code" className="min-h-0">
 
-  {!!activeFragment?.files && (
+  {Object.keys(files).length > 0 && sandboxId && (
     <FileExplorer 
-      files={activeFragment.files as { [path:string]: string}}
+      files={files}
+      sandboxId={sandboxId}
+      activeFragment={activeFragment}
     />
   )}
 

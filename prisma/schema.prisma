@@ -62,6 +62,7 @@ model Fragment {
   sandboxUrl String
   title String
   files Json
+  sandboxId String? // Optional sandbox ID for editing
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -81,3 +82,4 @@ model Screenshot {
   sandboxUrl String
   createdAt  DateTime @default(now())
 }
+

@@ -305,6 +305,7 @@ export const codeAgentFunction = inngest.createFunction(
               sandboxUrl: sandboxUrl,
               title: fragmentTitle,
               files: result.state.data.files,
+              sandboxId, // Store sandboxId for persistent editing
             }
           }
         },
@@ -340,6 +341,7 @@ export const codeAgentFunction = inngest.createFunction(
         title: "Fragment",
         files: result.state.data.files,
         summary: result.state.data.summary,
+        sandboxId, // expose sandboxId to frontend
     };
   }
 );
