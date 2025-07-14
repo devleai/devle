@@ -80,7 +80,7 @@ useEffect(() => {
                 </div>
 
             </div>
-            <div className="relative p3 pt-1">
+            <div className="relative p3 pt-1 m-3">
 <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-b from-transparent to-background/70 pointer-events-none" />
 
                 <MessageForm projectId={projectId} />

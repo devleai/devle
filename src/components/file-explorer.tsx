@@ -20,6 +20,9 @@ BreadcrumbEllipsis,
 import { sleep } from "@trpc/server/unstable-core-do-not-import";
 import { convertFilesToTreeItems } from "@/lib/utils";
 import { TreeView } from "./tree-view";
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { DownloadIcon } from "lucide-react";
 
 type fileCollection= { [path: string]: string };
 
@@ -169,8 +172,24 @@ setCopied(false);
                  disabled={copied}
                  >
                     {copied ? <CopyCheckIcon /> : <CopyIcon />}
-                    
                     </Button>   
+                </Hint>
+                <Hint text="Download all as zip" side="bottom">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="ml-2"
+                    onClick={async () => {
+                      const zip = new JSZip();
+                      Object.entries(files).forEach(([path, content]) => {
+                        zip.file(path, content);
+                      });
+                      const blob = await zip.generateAsync({ type: "blob" });
+                      saveAs(blob, "files.zip");
+                    }}
+                  >
+                    <DownloadIcon />
+                  </Button>
                 </Hint>
             </div>
             <div className="flex-1 overflow-auto"> 

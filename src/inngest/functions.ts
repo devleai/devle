@@ -262,25 +262,10 @@ export const codeAgentFunction = inngest.createFunction(
 
     }
 
-    // After files are written, try to start the app in the sandbox and check for errors
-    let sandboxRunError = false;
-    let sandboxRunOutput = null;
-    try {
-      const sandbox = await getSandbox(sandboxId);
-      // Try to run the app (adjust command if needed)
-      const runResult = await sandbox.commands.run("npm run dev", { timeoutMs: 30_000 });
-      sandboxRunOutput = runResult;
-      if (runResult.exitCode !== 0 || (runResult.stderr && runResult.stderr.toLowerCase().includes("error"))) {
-        sandboxRunError = true;
-      }
-    } catch (e) {
-      sandboxRunError = true;
-    }
-
+    // Undo sandbox run check
     const isError = 
       !result.state.data.summary ||
-      Object.keys(result.state.data.files || {}).length === 0 ||
-      sandboxRunError;
+      Object.keys(result.state.data.files || {}).length === 0;
 
     const sandboxUrl = await step.run("get-sandbox-url", async () => {
       const sandbox = await getSandbox(sandboxId);

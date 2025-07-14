@@ -20,7 +20,9 @@ import { FileExplorer } from "@/components/file-explorer";
 import { UserControl } from "@/components/user-control";
 import { useAuth } from "@clerk/nextjs";
 import { ErrorBoundary } from "react-error-boundary";
-
+import JSZip from "jszip";
+import { saveAs } from "file-saver";
+import { DownloadIcon } from "lucide-react";
 
 
 interface Props {
@@ -99,18 +101,16 @@ export const ProjectView = ({ projectId }: Props) => {
 
                                         </TabsList>
                                  <div className="ml-auto flex items-center gap-x-2">
-
-                                    {!hasProAccess && (
-                                   <Button asChild size="sm" variant="default">
-                                        <Link href="/pricing">
-                                        <CrownIcon /> Upgrade
-                                        </Link>
-
-                                    </Button>
-                                    )}
- 
-                                    <UserControl />
-                                  </div>
+  
+  {!hasProAccess && (
+    <Button asChild size="sm" variant="default">
+      <Link href="/pricing">
+        <CrownIcon /> Upgrade
+      </Link>
+    </Button>
+  )}
+  <UserControl />
+</div>
 
 
                                     </div>
@@ -122,12 +122,12 @@ export const ProjectView = ({ projectId }: Props) => {
 
                                  <TabsContent value="code" className="min-h-0">
 
-                                    {!!activeFragment?.files && (
-                                        <FileExplorer 
-                                        files={activeFragment.files as { [path:string]: string}}
-                                        />
-                                    )}
-                     
+  {!!activeFragment?.files && (
+    <FileExplorer 
+      files={activeFragment.files as { [path:string]: string}}
+    />
+  )}
+
 
                                     </TabsContent>
                                 </Tabs>
