@@ -6,6 +6,8 @@ import Image from "next/image";
 import { ArrowLeftIcon, ExternalLinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProjectForm } from "@/modules/home/ui/components/project-form";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { SolutionsShowcase } from "@/components/SolutionsShowcase";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -225,7 +227,43 @@ export default async function SolutionPage({ params }: Props) {
             <div>
               <strong>Project ID:</strong> {project.id}
             </div>
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold mb-4">FAQ</h3>
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="how-create">
+                  <AccordionTrigger>How can I create {title}?</AccordionTrigger>
+                  <AccordionContent>
+                    Just use our AI builder above to generate your {title} instantly.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="best-way">
+                  <AccordionTrigger>What is the best way to use {title}?</AccordionTrigger>
+                  <AccordionContent>
+                    Interact with the AI and provide details to tailor your {title}.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="customize">
+                  <AccordionTrigger>Can I customize my {title}?</AccordionTrigger>
+                  <AccordionContent>
+                    Yes, you can further edit and personalize your {title} after creation.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="beginners">
+                  <AccordionTrigger>Is {title} suitable for beginners?</AccordionTrigger>
+                  <AccordionContent>
+                    {title} is designed to be easy for everyone, including beginners.
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="share">
+                  <AccordionTrigger>How do I share my {title}?</AccordionTrigger>
+                  <AccordionContent>
+                    You can share your {title} by sending the link or exporting it.
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
           </div>
+          <SolutionsShowcase />
         </div>
       </div>
     </div>
