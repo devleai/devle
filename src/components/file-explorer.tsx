@@ -26,6 +26,7 @@ import { DownloadIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useRef } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@clerk/nextjs";
 
 type fileCollection= { [path: string]: string };
 
@@ -201,6 +202,8 @@ setCopied(false);
         }
     }, [selectedFile, editContent, sandboxId, fileState, activeFragment?.id]);
 
+    const { has } = useAuth();
+    const hasProAccess = has?.({ plan: "pro" });
 
     return (
         <ResizablePanelGroup direction="horizontal">
@@ -223,7 +226,13 @@ setCopied(false);
                         variant="outline"
                         size="icon"
                         className="ml-2"
-                        onClick={handleEdit}
+                        onClick={() => {
+                          if (!hasProAccess) {
+                            window.location.href = "/pricing";
+                            return;
+                          }
+                          handleEdit();
+                        }}
                         disabled={isEditing}
                     >
                         Edit
@@ -246,6 +255,10 @@ setCopied(false);
                     size="icon"
                     className="ml-2"
                     onClick={async () => {
+                      if (!hasProAccess) {
+                        window.location.href = "/pricing";
+                        return;
+                      }
                       const zip = new JSZip();
                       Object.entries(fileState).forEach(([path, content]) => {
                         zip.file(path, content);

@@ -330,6 +330,7 @@ export const codeAgentFunction = inngest.createFunction(
         name: "code-agent/run.completed",
         data: {
           projectId: event.data.projectId,
+          userPlan: event.data.userPlan, // Pass userPlan
         },
       });
     } else {
@@ -351,6 +352,10 @@ export const generateSolutionPageFunction = inngest.createFunction(
   { event: "code-agent/run.completed" },
   async ({ event, step }) => {
     try {
+      // Only allow for free users
+      if (event.data.userPlan !== "free") {
+        return { message: "Not generating solution page for non-free users." };
+      }
       console.log('🔍 Inngest function triggered:', event);
       
       const project = await step.run("get-project", async () => {
