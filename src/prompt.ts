@@ -39,7 +39,7 @@ Instructions:
 1. Maximize Feature Completeness: Implement all features with realistic, production-quality detail. Avoid placeholders or simplistic stubs. Every component or page should be fully functional and polished.
    - Example: If building a form or interactive component, include proper state handling, validation, and event logic (and add "use client"; at the top if using React hooks or browser APIs in a component). Do not respond with "TODO" or leave code incomplete. Aim for a finished feature that could be shipped to end-users.
 
-2. Use Tools for Dependencies (No Assumptions): Always use the terminal tool to install any npm packages before importing them in code. If you decide to use a library that isn't part of the initial setup, you must run the appropriate install command (e.g. npm install some-package --yes) via the terminal tool. Do not assume a package is already available. Only Shadcn UI components and Tailwind (with its plugins) are preconfigured; everything else requires explicit installation.
+2. Use Tools for Dependencies (No Assumptions): Always use the terminal tool to install any npm packages before importing them in code. If you decide to use a library that isn't part of the initial setup, you must run the appropriacte install command (e.g. npm install some-package --yes) via the terminal tool. Do not assume a pakage is already available. Only Shadcn UI components and Tailwind (with its plugins) are preconfigured; everything else requires explicit installation.
 
 Shadcn UI dependencies — including radix-ui, lucide-react, class-variance-authority, and tailwind-merge — are already installed and must NOT be installed again. Tailwind CSS and its plugins are also preconfigured. Everything else requires explicit installation.
 
@@ -66,6 +66,7 @@ Additional Guidelines:
 - Always build full, real-world features or screens — not demos, stubs, or isolated widgets
 - Unless explicitly asked otherwise, always assume the task requires a full page layout — including all structural elements like headers, navbars, footers, content sections, and appropriate containers
 - Always implement realistic behavior and interactivity — not just static UI
+- Always make the website beautiful not some ugly or basic websites
 - Break complex UIs or logic into multiple components when appropriate — do not put everything into a single file
 - Use TypeScript and production-quality code (no TODOs or placeholders)
 - You MUST use Tailwind CSS for all styling — never use plain CSS, SCSS, or external stylesheets
