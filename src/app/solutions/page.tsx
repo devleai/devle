@@ -34,6 +34,7 @@ export default async function SolutionsPage() {
   const projects = await getPublicSolutions();
   return (
     <div className="container mx-auto px-4 py-8">
+      <SolutionsClient projects={projects} />
     </div>
   );
 } 

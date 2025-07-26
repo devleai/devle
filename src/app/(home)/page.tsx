@@ -57,6 +57,7 @@ const Page = () => {
           </div>
         </section>
         <ProjectsList />
+        <SolutionsShowcase />
       </div>
     </div>
   );
