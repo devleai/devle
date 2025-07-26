@@ -1,9 +1,33 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CategoryFilter } from "@/components/CategoryFilter";
 
-export function SolutionsClient({ projects }: { projects: any[] }) {
+export function SolutionsClient() {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch('/api/solutions');
+        if (!response.ok) {
+          throw new Error('Failed to fetch solutions');
+        }
+        const data = await response.json();
+        setProjects(data);
+      } catch (err) {
+        console.error('Error fetching solutions:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch solutions');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
   // Filter out projects created less than 2 minutes ago
   const TWO_MINUTES = 2 * 60 * 1000;
   const now = Date.now();
@@ -19,6 +43,34 @@ export function SolutionsClient({ projects }: { projects: any[] }) {
   const visibleProjects = selectedCategory === 'All'
     ? filteredProjects
     : filteredProjects.filter((p: any) => (p.category || 'Other') === selectedCategory);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8">AI Solutions</h1>
+        <p className="text-lg text-muted-foreground mb-12">
+          Explore AI-generated solutions and projects built with Devle
+        </p>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Loading solutions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold mb-8">AI Solutions</h1>
+        <p className="text-lg text-muted-foreground mb-12">
+          Explore AI-generated solutions and projects built with Devle
+        </p>
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">Error loading solutions: {error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto">

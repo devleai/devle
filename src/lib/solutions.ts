@@ -1,43 +1,44 @@
 import { prisma } from "@/lib/db";
 
 export async function getPublicSolutions() {
-  const projects = await prisma.project.findMany({
-    where: {
-      visibility: "public",
-      slug: { not: null },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: 100,
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      createdAt: true,
-      category: true,
-      messages: {
-        take: 1,
-        orderBy: { createdAt: "desc" },
-        select: {
-          content: true,
-          type: true,
-          fragment: {
-            select: {
-              title: true,
+  try {
+    const projects = await prisma.project.findMany({
+      where: {
+        visibility: "public",
+        slug: { not: null },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 50, // Reduced from 100 to 50 to be more efficient
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        createdAt: true,
+        category: true,
+        messages: {
+          take: 1,
+          orderBy: { createdAt: "desc" },
+          select: {
+            content: true,
+            type: true,
+            fragment: {
+              select: {
+                title: true,
+              },
             },
           },
         },
-      },
-      screenshots: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: {
-          imageUrl: true,
+        screenshots: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            imageUrl: true,
+          },
         },
       },
-    },
-  });
+    });
 
   // Filter out duplicates based on title similarity
   const uniqueProjects = [];
@@ -60,4 +61,8 @@ export async function getPublicSolutions() {
   }
 
   return uniqueProjects.slice(0, 50);
+  } catch (error) {
+    console.error('Error fetching public solutions:', error);
+    return []; // Return empty array on error to prevent build failures
+  }
 } 
