@@ -1,14 +1,16 @@
 export const dynamic = 'force-dynamic';
 
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+
+// Cache the sitemap for 1 hour to reduce database load
+const CACHE_DURATION = 60 * 60; // 1 hour in seconds
 
 export async function GET() {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://devle.ai';
     
-    // Get all public projects with slugs and titles (no limit)
+    // Limit the number of projects to avoid hitting database quotas
     const publicProjects = await prisma.project.findMany({
       where: {
         visibility: "public",
@@ -17,6 +19,7 @@ export async function GET() {
       orderBy: {
         createdAt: "desc",
       },
+      take: 1000, // Limit to 1000 projects to avoid quota issues
       select: {
         slug: true,
         updatedAt: true,
@@ -81,6 +84,7 @@ ${uniqueProjects.map((project) => `  <url>
     return new NextResponse(xml, {
       headers: {
         'Content-Type': 'application/xml',
+        'Cache-Control': `public, max-age=${CACHE_DURATION}, s-maxage=${CACHE_DURATION}`,
       },
     });
   } catch (error) {
