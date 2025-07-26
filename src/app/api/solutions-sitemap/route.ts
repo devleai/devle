@@ -8,9 +8,33 @@ const CACHE_DURATION = 60 * 60; // 1 hour in seconds
 
 export async function GET() {
   try {
+    console.log('Starting solutions sitemap generation...');
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://devle.ai';
     
-    // Limit the number of projects to avoid hitting database quotas
+    // Check if we should use a simple fallback (for quota issues)
+    const useFallback = process.env.USE_SITEMAP_FALLBACK === 'true';
+    
+    if (useFallback) {
+      console.log('Using fallback sitemap (no database query)');
+      const fallbackXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/solutions</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+
+      return new NextResponse(fallbackXml, {
+        headers: {
+          'Content-Type': 'application/xml',
+          'Cache-Control': `public, max-age=${CACHE_DURATION}, s-maxage=${CACHE_DURATION}`,
+        },
+      });
+    }
+    
+    // Simplified query to avoid hitting database quotas
     const publicProjects = await prisma.project.findMany({
       where: {
         visibility: "public",
@@ -19,50 +43,20 @@ export async function GET() {
       orderBy: {
         createdAt: "desc",
       },
-      take: 1000, // Limit to 1000 projects to avoid quota issues
+      take: 500, // Reduced limit to avoid quota issues
       select: {
         slug: true,
         updatedAt: true,
-        messages: {
-          where: {
-            fragment: {
-              isNot: null,
-            },
-          },
-          take: 1,
-          orderBy: { createdAt: "desc" },
-          select: {
-            fragment: {
-              select: {
-                title: true,
-              },
-            },
-          },
-        },
+        name: true, // Use project name instead of complex fragment query
       },
     });
 
     console.log(`Total public projects with slugs: ${publicProjects.length}`);
 
-    // Filter out duplicates based on title, but be less strict
-    const uniqueProjects = [];
-    const seenTitles = new Set();
-
-    for (const project of publicProjects) {
-      const title = project.messages[0]?.fragment?.title;
-      const normalizedTitle = (title || "").toLowerCase().trim();
-      
-      // Only skip if we've seen this exact title before
-      if (seenTitles.has(normalizedTitle) && normalizedTitle !== "") {
-        console.log(`Skipping duplicate title: ${normalizedTitle}`);
-        continue;
-      }
-
-      uniqueProjects.push(project);
-      seenTitles.add(normalizedTitle);
-    }
-
-    console.log(`Unique projects after filtering: ${uniqueProjects.length}`);
+    // Simple filtering - just use all projects since we're not doing complex title matching
+    const uniqueProjects = publicProjects.filter(project => project.slug);
+    
+    console.log(`Filtered projects with valid slugs: ${uniqueProjects.length}`);
 
     // Create XML for solutions only
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -89,9 +83,24 @@ ${uniqueProjects.map((project) => `  <url>
     });
   } catch (error) {
     console.error('Error generating solutions sitemap:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate solutions sitemap' },
-      { status: 500 }
-    );
+    
+    // Return a minimal sitemap with just the main solutions page if database fails
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://devle.ai';
+    const fallbackXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>${baseUrl}/solutions</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
+
+    return new NextResponse(fallbackXml, {
+      headers: {
+        'Content-Type': 'application/xml',
+        'Cache-Control': `public, max-age=${CACHE_DURATION}, s-maxage=${CACHE_DURATION}`,
+      },
+    });
   }
 } 
