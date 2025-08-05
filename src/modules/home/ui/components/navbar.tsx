@@ -28,7 +28,7 @@ export const Navbar = () => {
         <a href="/pricing" className="group">
           
 
-          <span className={cn("me-1 text-sm leading-none", !isScrolled && isHomepage ? "text-white" : "")}>   <span className="me-1 text-base leading-none ">✨</span>       Sign up before prices increase on August 14          </span>
+          <span className={cn("me-1 text-sm leading-none", !isScrolled && isHomepage ? "text-white" : "")}>   <span className="me-1 text-base leading-none ">✨</span>       Sign up before prices increase on August 16          </span>
 
                     <ArrowRightIcon
             className={cn("ms-2 -mt-0.5 inline-flex opacity-60 transition-transform group-hover:translate-x-0.5", !isScrolled && isHomepage ? "text-white" : "")}
