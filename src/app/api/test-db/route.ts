@@ -1,66 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
-    // Check fragments
-    const fragments = await prisma.fragment.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        sandboxUrl: true,
-        title: true,
-        createdAt: true,
-        message: {
-          select: {
-            project: {
-              select: {
-                visibility: true,
-                id: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    // Check projects
-    const projects = await prisma.project.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 10,
-      select: {
-        id: true,
-        visibility: true,
-        createdAt: true,
-        messages: {
-          select: {
-            id: true,
-            fragment: {
-              select: {
-                sandboxUrl: true
-              }
-            }
-          }
-        }
-      }
-    });
-
-    return NextResponse.json({
-      fragments: {
-        count: fragments.length,
-        data: fragments
+    // Simple test query
+    const count = await prisma.project.count({
+      where: {
+        visibility: "public",
       },
-      projects: {
-        count: projects.length,
-        data: projects
-      }
+    });
+    
+    return NextResponse.json({
+      success: true,
+      publicProjectsCount: count,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Test DB error:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Database test error:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
     }, { status: 500 });
   }
 } 

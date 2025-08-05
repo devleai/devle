@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import { SolutionsClient } from "./SolutionsClient";
-import { getPublicSolutions } from "@/lib/solutions";
 
 export const metadata: Metadata = {
   title: "AI Solutions - Devle",
@@ -30,11 +29,10 @@ export const metadata: Metadata = {
   ],
 };
 
-export default async function SolutionsPage() {
-  const projects = await getPublicSolutions();
+export default function SolutionsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
-      <SolutionsClient projects={projects} />
+      <SolutionsClient />
     </div>
   );
 } 
